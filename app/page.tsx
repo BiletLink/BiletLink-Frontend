@@ -27,7 +27,8 @@ export default function Home() {
 
     const fetchEvents = async () => {
         try {
-            const response = await fetch('http://localhost:5001/api/events?limit=50');
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/events?limit=50`);
             const data = await response.json();
             setEvents(data);
         } catch (error) {
@@ -71,8 +72,8 @@ export default function Home() {
                                 key={cat}
                                 onClick={() => setActiveCategory(cat)}
                                 className={`px-6 py-3 rounded-full font-medium transition-all ${activeCategory === cat
-                                        ? 'bg-white text-slate-900 shadow-lg'
-                                        : 'bg-white/10 text-white hover:bg-white/20'
+                                    ? 'bg-white text-slate-900 shadow-lg'
+                                    : 'bg-white/10 text-white hover:bg-white/20'
                                     }`}
                             >
                                 {cat}
