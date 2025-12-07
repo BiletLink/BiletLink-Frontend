@@ -13,7 +13,7 @@ interface EventCardProps {
     status?: EventStatus;
 }
 
-export default function EventCard({ id, name, description, date, imageUrl, category, minPrice }: EventCardProps) {
+export default function EventCard({ id, name, description, date, imageUrl, category, minPrice, status = 'Active' }: EventCardProps) {
     const API_BASE = 'http://localhost:5001';
 
     const formatDate = (dateString: string) => {
@@ -52,17 +52,45 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
         return colors[cat] || 'bg-blue-100 text-blue-700';
     };
 
+    const getStatusBadge = () => {
+        switch (status) {
+            case 'Expired':
+                return (
+                    <div className="absolute top-3 right-3 z-10">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-500/90 text-white backdrop-blur-sm shadow-lg">
+                            📅 Geçmiş
+                        </span>
+                    </div>
+                );
+            case 'SoldOut':
+                return (
+                    <div className="absolute top-3 right-3 z-10">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-500/90 text-white backdrop-blur-sm shadow-lg">
+                            🎫 Tükendi
+                        </span>
+                    </div>
+                );
+            default:
+                return null;
+        }
+    };
+
+    if (status === 'Removed') return null;
+
     return (
         <Link href={`/event/${id}`} className="group">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+            <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden ${status === 'Expired' ? 'opacity-60' : ''}`}>
                 <div className="relative aspect-video bg-gradient-to-br from-blue-500 to-purple-500 overflow-hidden">
+                    {/* Status Badge */}
+                    {getStatusBadge()}
+
                     {getImageSrc() ? (
                         <img
                             src={getImageSrc()!}
                             alt={name}
                             crossOrigin="anonymous"
                             referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${status === 'Expired' ? 'grayscale' : ''}`}
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-white text-5xl">
