@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import EventCard from '@/components/event/EventCard';
 
+type EventStatus = 'Active' | 'Expired' | 'SoldOut' | 'Removed';
+
 interface Event {
     id: string;
     name: string;
@@ -12,6 +14,7 @@ interface Event {
     imageUrl?: string | null;
     category: string;
     minPrice: number;
+    status?: EventStatus;
 }
 
 export default function Home() {
@@ -39,8 +42,8 @@ export default function Home() {
     };
 
     const filteredEvents = activeCategory === 'Tümü'
-        ? events
-        : events.filter(e => e.category === activeCategory);
+        ? events.filter(e => e.status !== 'Removed')
+        : events.filter(e => e.category === activeCategory && e.status !== 'Removed');
 
     return (
         <div className="min-h-screen">

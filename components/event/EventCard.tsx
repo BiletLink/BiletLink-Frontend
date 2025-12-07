@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+type EventStatus = 'Active' | 'Expired' | 'SoldOut' | 'Removed';
+
 interface EventCardProps {
     id: string;
     name: string;
@@ -8,6 +10,7 @@ interface EventCardProps {
     imageUrl?: string | null;
     category: string;
     minPrice: number;
+    status?: EventStatus;
 }
 
 export default function EventCard({ id, name, description, date, imageUrl, category, minPrice }: EventCardProps) {
