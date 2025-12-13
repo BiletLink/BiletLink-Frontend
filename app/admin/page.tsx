@@ -113,6 +113,9 @@ export default function AdminDashboard() {
                                 <Link href="/admin/venues" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700 transition">
                                     🏛️ Venues
                                 </Link>
+                                <Link href="/admin/seo" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700 transition">
+                                    🔍 SEO
+                                </Link>
                             </div>
                         </div>
                         <button
@@ -189,7 +192,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Quick Links */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <Link href="/admin/events" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-blue-500 transition group">
                         <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400">🎫 Events Yönetimi</h3>
                         <p className="text-slate-400 text-sm">Etkinlikleri görüntüle, düzenle veya sil</p>
@@ -201,6 +204,10 @@ export default function AdminDashboard() {
                     <Link href="/admin/venues" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-orange-500 transition group">
                         <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-orange-400">🏛️ Venues Yönetimi</h3>
                         <p className="text-slate-400 text-sm">Mekanları görüntüle ve düzenle</p>
+                    </Link>
+                    <Link href="/admin/seo" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-green-500 transition group">
+                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-green-400">🔍 SEO Analiz</h3>
+                        <p className="text-slate-400 text-sm">Web sayfalarını analiz et, PDF rapor al</p>
                     </Link>
                 </div>
             </main>
