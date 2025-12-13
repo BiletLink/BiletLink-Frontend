@@ -75,8 +75,8 @@ export default function Home() {
                 params.append('category', activeCategory);
             }
 
-            if (selectedCity !== 'Tüm Şehirler') {
-                params.append('city', selectedCity);
+            if (selectedCity) {
+                params.append('city', selectedCity.name);
             }
 
             const response = await fetch(`${apiUrl}/api/events?${params}`);
@@ -185,7 +185,7 @@ export default function Home() {
                 <div className="flex items-center justify-between mb-8">
                     <h2 className="text-3xl font-bold text-slate-900">
                         {activeCategory === 'Tümü' ? 'Tüm Etkinlikler' : activeCategory}
-                        {selectedCity !== 'Tüm Şehirler' && ` - ${selectedCity}`}
+                        {selectedCity && ` - ${selectedCity.name}`}
                     </h2>
                     <p className="text-slate-500">
                         {filteredEvents.length} etkinlik bulundu
