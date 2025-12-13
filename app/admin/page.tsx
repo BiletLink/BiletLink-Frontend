@@ -271,6 +271,26 @@ export default function AdminDashboard() {
                         >
                             🏙️ Ankara
                         </button>
+                        <button
+                            onClick={async () => {
+                                if (!confirm('Duplicate etkinlikleri temizlemek istediğinize emin misiniz?')) return;
+                                try {
+                                    const token = localStorage.getItem('adminToken');
+                                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+                                    const response = await fetch(`${apiUrl}/api/admin/cleanup/duplicates`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    });
+                                    const data = await response.json();
+                                    alert(data.message);
+                                } catch (error) {
+                                    alert('Temizlik başarısız');
+                                }
+                            }}
+                            className="px-3 py-1 bg-red-600/30 text-red-400 rounded text-sm hover:bg-red-600/50"
+                        >
+                            🧹 Duplicate Temizle
+                        </button>
                     </div>
                 </div>
 
