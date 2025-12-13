@@ -10,10 +10,11 @@ interface EventCardProps {
     imageUrl?: string | null;
     category: string;
     minPrice: number;
+    venueCity?: string | null;
     status?: EventStatus;
 }
 
-export default function EventCard({ id, name, description, date, imageUrl, category, minPrice, status = 'Active' }: EventCardProps) {
+export default function EventCard({ id, name, description, date, imageUrl, category, minPrice, venueCity, status = 'Active' }: EventCardProps) {
     const API_BASE = 'http://localhost:5001';
 
     const formatDate = (dateString: string) => {
@@ -124,7 +125,7 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
-                            İstanbul
+                            {venueCity || 'İstanbul'}
                         </div>
                         <div className="text-blue-600 font-bold text-lg">
                             {formatPrice(minPrice)}

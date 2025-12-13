@@ -14,6 +14,7 @@ interface Event {
     imageUrl?: string | null;
     category: string;
     minPrice: number;
+    venueCity?: string | null;
     status?: EventStatus;
 }
 
