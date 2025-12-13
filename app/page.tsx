@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Header from '@/components/layout/Header';
 import EventCard from '@/components/event/EventCard';
+import { useCity } from '@/contexts/CityContext';
 
 type EventStatus = 'Active' | 'Expired' | 'SoldOut' | 'Removed';
 
@@ -36,11 +37,11 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function Home() {
+    const { selectedCity } = useCity();
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [activeCategory, setActiveCategory] = useState('Tümü');
-    const [activeCity, setActiveCity] = useState('Tümü');
     const [searchQuery, setSearchQuery] = useState('');
     const [offset, setOffset] = useState(0);
     const [hasMore, setHasMore] = useState(true);
@@ -49,7 +50,6 @@ export default function Home() {
     const debouncedSearch = useDebounce(searchQuery, 300);
 
     const categories = ['Tümü', 'Konser', 'Tiyatro', 'Stand-Up', 'Spor', 'Festival', 'Müzikal', 'Opera', 'Bale', 'Gösteri'];
-    const cities = ['Tümü', 'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Sinop', 'Eskişehir', 'Mersin', 'Kayseri'];
 
     const fetchEvents = useCallback(async (reset: boolean = false) => {
         try {
@@ -75,8 +75,8 @@ export default function Home() {
                 params.append('category', activeCategory);
             }
 
-            if (activeCity !== 'Tümü') {
-                params.append('city', activeCity);
+            if (selectedCity !== 'Tüm Şehirler') {
+                params.append('city', selectedCity);
             }
 
             const response = await fetch(`${apiUrl}/api/events?${params}`);
@@ -95,12 +95,12 @@ export default function Home() {
             setLoading(false);
             setLoadingMore(false);
         }
-    }, [offset, debouncedSearch, activeCategory, activeCity]);
+    }, [offset, debouncedSearch, activeCategory, selectedCity]);
 
     // Initial load and search/category/city change
     useEffect(() => {
         fetchEvents(true);
-    }, [debouncedSearch, activeCategory, activeCity]);
+    }, [debouncedSearch, activeCategory, selectedCity]);
 
     const loadMore = () => {
         setOffset(prev => prev + LIMIT);
@@ -163,7 +163,7 @@ export default function Home() {
                     </div>
 
                     {/* Category Filters */}
-                    <div className="flex flex-wrap justify-center gap-2 mb-4">
+                    <div className="flex flex-wrap justify-center gap-2">
                         {categories.map((cat) => (
                             <button
                                 key={cat}
@@ -177,23 +177,6 @@ export default function Home() {
                             </button>
                         ))}
                     </div>
-
-                    {/* City Filter */}
-                    <div className="flex flex-wrap justify-center gap-2">
-                        <span className="text-white/70 flex items-center mr-2">📍 Şehir:</span>
-                        {cities.map((city) => (
-                            <button
-                                key={city}
-                                onClick={() => setActiveCity(city)}
-                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeCity === city
-                                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
-                                    : 'bg-white/10 text-white hover:bg-white/20'
-                                    }`}
-                            >
-                                {city}
-                            </button>
-                        ))}
-                    </div>
                 </div>
             </section>
 
@@ -202,6 +185,7 @@ export default function Home() {
                 <div className="flex items-center justify-between mb-8">
                     <h2 className="text-3xl font-bold text-slate-900">
                         {activeCategory === 'Tümü' ? 'Tüm Etkinlikler' : activeCategory}
+                        {selectedCity !== 'Tüm Şehirler' && ` - ${selectedCity}`}
                     </h2>
                     <p className="text-slate-500">
                         {filteredEvents.length} etkinlik bulundu
