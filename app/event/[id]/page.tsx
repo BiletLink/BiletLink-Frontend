@@ -44,8 +44,28 @@ export default function EventDetailPage() {
     useEffect(() => {
         if (params.id) {
             fetchEventDetail(params.id as string);
+            // Track page view
+            trackView(params.id as string);
         }
     }, [params.id]);
+
+    const trackView = async (id: string) => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            await fetch(`${apiUrl}/api/analytics/track/view/${id}`, { method: 'POST' });
+        } catch (e) {
+            // Silently fail - analytics shouldn't break the page
+        }
+    };
+
+    const trackClick = async (id: string, source: string) => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            await fetch(`${apiUrl}/api/analytics/track/click/${id}?source=${source}`, { method: 'POST' });
+        } catch (e) {
+            // Silently fail
+        }
+    };
 
     const fetchEventDetail = async (id: string) => {
         try {
@@ -218,6 +238,7 @@ export default function EventDetailPage() {
                                                 href={ticket.affiliateUrl || ticket.url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
+                                                onClick={() => trackClick(event.id, ticket.sourceName)}
                                                 className={`flex items-center justify-between p-4 rounded-xl text-white transition-all transform hover:scale-102 ${getPlatformColor(ticket.sourceName)} ${index === 0 ? 'ring-2 ring-green-400 ring-offset-2' : ''}`}
                                             >
                                                 <div className="flex items-center gap-3">
