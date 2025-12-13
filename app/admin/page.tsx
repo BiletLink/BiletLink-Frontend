@@ -50,8 +50,8 @@ export default function AdminDashboard() {
         }
     };
 
-    const runScraper = async (scraper: string) => {
-        setScraperLoading(scraper);
+    const runScraper = async (platform: string, queryType: string = 'general', queryValue: string = '') => {
+        setScraperLoading(platform);
         try {
             const token = localStorage.getItem('adminToken');
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
@@ -61,11 +61,19 @@ export default function AdminDashboard() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ scraper })
+                body: JSON.stringify({
+                    scraper: platform,
+                    queryType,
+                    queryValue
+                })
             });
 
             const data = await response.json();
-            alert(data.message);
+            if (data.workflowUrl) {
+                alert(`${data.message}\n\nGitHub Actions: ${data.workflowUrl}`);
+            } else {
+                alert(data.message);
+            }
         } catch (error) {
             alert('Scraper başlatılamadı');
         } finally {
@@ -166,27 +174,102 @@ export default function AdminDashboard() {
                     <p className="text-slate-400 text-sm mb-4">
                         Son çalışma: {formatDate(stats?.lastScrapedAt || null)}
                     </p>
-                    <div className="flex gap-4">
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        {/* Platform Seçimi */}
+                        <div>
+                            <label className="block text-slate-400 text-sm mb-2">Platform</label>
+                            <select
+                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                                id="scraper-platform"
+                                defaultValue="all"
+                            >
+                                <option value="all">🌐 Tümü</option>
+                                <option value="biletix">🎫 Biletix</option>
+                                <option value="bubilet">🎟️ Bubilet</option>
+                            </select>
+                        </div>
+
+                        {/* Sorgu Tipi */}
+                        <div>
+                            <label className="block text-slate-400 text-sm mb-2">Sorgu Tipi</label>
+                            <select
+                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                                id="scraper-query-type"
+                                defaultValue="general"
+                            >
+                                <option value="general">📋 Genel (Tüm Etkinlikler)</option>
+                                <option value="city">🏙️ Şehir Bazlı</option>
+                                <option value="venue">🏛️ Mekan Bazlı</option>
+                                <option value="artist">🎤 Sanatçı Bazlı</option>
+                            </select>
+                        </div>
+
+                        {/* Sorgu Değeri */}
+                        <div>
+                            <label className="block text-slate-400 text-sm mb-2">Sorgu Değeri</label>
+                            <input
+                                type="text"
+                                id="scraper-query-value"
+                                placeholder="Örn: İstanbul, Volkswagen Arena..."
+                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400"
+                            />
+                        </div>
+
+                        {/* Çalıştır Butonu */}
+                        <div className="flex items-end">
+                            <button
+                                onClick={() => {
+                                    const platform = (document.getElementById('scraper-platform') as HTMLSelectElement)?.value || 'all';
+                                    const queryType = (document.getElementById('scraper-query-type') as HTMLSelectElement)?.value || 'general';
+                                    const queryValue = (document.getElementById('scraper-query-value') as HTMLInputElement)?.value || '';
+                                    runScraper(platform, queryType, queryValue);
+                                }}
+                                disabled={scraperLoading !== null}
+                                className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition font-semibold"
+                            >
+                                {scraperLoading ? '⏳ Çalışıyor...' : '▶️ Çalıştır'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Hızlı Erişim Butonları */}
+                    <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-700">
+                        <span className="text-slate-400 text-sm mr-2">Hızlı:</span>
                         <button
-                            onClick={() => runScraper('biletix')}
+                            onClick={() => runScraper('all', 'general', '')}
                             disabled={scraperLoading !== null}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                            className="px-3 py-1 bg-slate-700 text-white rounded text-sm hover:bg-slate-600 disabled:opacity-50"
                         >
-                            {scraperLoading === 'biletix' ? '⏳ Çalışıyor...' : '▶️ Biletix'}
+                            🌐 Tümü
                         </button>
                         <button
-                            onClick={() => runScraper('bubilet')}
+                            onClick={() => runScraper('biletix', 'general', '')}
                             disabled={scraperLoading !== null}
-                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition"
+                            className="px-3 py-1 bg-blue-600/30 text-blue-400 rounded text-sm hover:bg-blue-600/50 disabled:opacity-50"
                         >
-                            {scraperLoading === 'bubilet' ? '⏳ Çalışıyor...' : '▶️ Bubilet'}
+                            Biletix
                         </button>
                         <button
-                            onClick={() => runScraper('all')}
+                            onClick={() => runScraper('bubilet', 'general', '')}
                             disabled={scraperLoading !== null}
-                            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 transition"
+                            className="px-3 py-1 bg-purple-600/30 text-purple-400 rounded text-sm hover:bg-purple-600/50 disabled:opacity-50"
                         >
-                            {scraperLoading === 'all' ? '⏳ Çalışıyor...' : '▶️ Tümünü Çalıştır'}
+                            Bubilet
+                        </button>
+                        <button
+                            onClick={() => runScraper('all', 'city', 'İstanbul')}
+                            disabled={scraperLoading !== null}
+                            className="px-3 py-1 bg-orange-600/30 text-orange-400 rounded text-sm hover:bg-orange-600/50 disabled:opacity-50"
+                        >
+                            🏙️ İstanbul
+                        </button>
+                        <button
+                            onClick={() => runScraper('all', 'city', 'Ankara')}
+                            disabled={scraperLoading !== null}
+                            className="px-3 py-1 bg-orange-600/30 text-orange-400 rounded text-sm hover:bg-orange-600/50 disabled:opacity-50"
+                        >
+                            🏙️ Ankara
                         </button>
                     </div>
                 </div>
