@@ -40,6 +40,7 @@ export default function Home() {
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [activeCategory, setActiveCategory] = useState('Tümü');
+    const [activeCity, setActiveCity] = useState('Tümü');
     const [searchQuery, setSearchQuery] = useState('');
     const [offset, setOffset] = useState(0);
     const [hasMore, setHasMore] = useState(true);
@@ -47,7 +48,8 @@ export default function Home() {
 
     const debouncedSearch = useDebounce(searchQuery, 300);
 
-    const categories = ['Tümü', 'Konser', 'Tiyatro', 'Spor', 'Atölye', 'Parti', 'Gece Hayatı'];
+    const categories = ['Tümü', 'Konser', 'Tiyatro', 'Stand-Up', 'Spor', 'Festival', 'Müzikal', 'Opera', 'Bale', 'Gösteri'];
+    const cities = ['Tümü', 'İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Gaziantep', 'Sinop', 'Eskişehir', 'Mersin', 'Kayseri'];
 
     const fetchEvents = useCallback(async (reset: boolean = false) => {
         try {
@@ -73,6 +75,10 @@ export default function Home() {
                 params.append('category', activeCategory);
             }
 
+            if (activeCity !== 'Tümü') {
+                params.append('city', activeCity);
+            }
+
             const response = await fetch(`${apiUrl}/api/events?${params}`);
             const data = await response.json();
 
@@ -89,12 +95,12 @@ export default function Home() {
             setLoading(false);
             setLoadingMore(false);
         }
-    }, [offset, debouncedSearch, activeCategory]);
+    }, [offset, debouncedSearch, activeCategory, activeCity]);
 
-    // Initial load and search/category change
+    // Initial load and search/category/city change
     useEffect(() => {
         fetchEvents(true);
-    }, [debouncedSearch, activeCategory]);
+    }, [debouncedSearch, activeCategory, activeCity]);
 
     const loadMore = () => {
         setOffset(prev => prev + LIMIT);
@@ -157,17 +163,34 @@ export default function Home() {
                     </div>
 
                     {/* Category Filters */}
-                    <div className="flex flex-wrap justify-center gap-3">
+                    <div className="flex flex-wrap justify-center gap-2 mb-4">
                         {categories.map((cat) => (
                             <button
                                 key={cat}
                                 onClick={() => setActiveCategory(cat)}
-                                className={`px-6 py-3 rounded-full font-medium transition-all ${activeCategory === cat
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeCategory === cat
                                     ? 'bg-white text-slate-900 shadow-lg'
                                     : 'bg-white/10 text-white hover:bg-white/20'
                                     }`}
                             >
                                 {cat}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* City Filter */}
+                    <div className="flex flex-wrap justify-center gap-2">
+                        <span className="text-white/70 flex items-center mr-2">📍 Şehir:</span>
+                        {cities.map((city) => (
+                            <button
+                                key={city}
+                                onClick={() => setActiveCity(city)}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeCity === city
+                                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                                    : 'bg-white/10 text-white hover:bg-white/20'
+                                    }`}
+                            >
+                                {city}
                             </button>
                         ))}
                     </div>
