@@ -37,10 +37,29 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
     const getImageSrc = () => {
         if (!imageUrl) return null;
 
-        if (imageUrl.startsWith('http')) return imageUrl;
-        if (imageUrl.startsWith('/images')) return `${API_BASE}${imageUrl}`;
+        // Bubilet images - direct URL (no CORS issues)
+        if (imageUrl.startsWith('http') && imageUrl.includes('bubilet')) {
+            return imageUrl;
+        }
 
-        return `https://www.biletix.com/static/images/live/event/eventimages/${imageUrl}`;
+        // Biletix full URL - use proxy
+        if (imageUrl.startsWith('http') && imageUrl.includes('biletix.com')) {
+            return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+        }
+
+        // Other external images
+        if (imageUrl.startsWith('http')) {
+            return imageUrl;
+        }
+
+        // Local images
+        if (imageUrl.startsWith('/images')) {
+            return `${API_BASE}${imageUrl}`;
+        }
+
+        // Biletix partial path - construct full URL and use proxy
+        const fullUrl = `https://www.biletix.com/static/images/live/event/eventimages/${imageUrl}`;
+        return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
     };
 
     const getCategoryColor = (cat: string) => {
