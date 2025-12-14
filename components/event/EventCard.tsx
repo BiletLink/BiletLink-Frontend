@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { useState } from 'react';
 
 type EventStatus = 'Active' | 'Expired' | 'SoldOut' | 'Removed';
 
@@ -16,6 +17,7 @@ interface EventCardProps {
 
 export default function EventCard({ id, name, description, date, imageUrl, category, minPrice, venueCity, status = 'Active' }: EventCardProps) {
     const API_BASE = 'http://localhost:5001';
+    const [imageError, setImageError] = useState(false);
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -49,8 +51,22 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
             'Atölye': 'bg-amber-100 text-amber-700',
             'Parti': 'bg-pink-100 text-pink-700',
             'Gece Hayatı': 'bg-indigo-100 text-indigo-700',
+            'Stand-Up': 'bg-orange-100 text-orange-700',
         };
         return colors[cat] || 'bg-blue-100 text-blue-700';
+    };
+
+    const getCategoryEmoji = (cat: string) => {
+        const emojis: Record<string, string> = {
+            'Konser': '🎵',
+            'Tiyatro': '🎭',
+            'Spor': '⚽',
+            'Atölye': '🎨',
+            'Parti': '🎉',
+            'Gece Hayatı': '🌙',
+            'Stand-Up': '🎤',
+        };
+        return emojis[cat] || '🎫';
     };
 
     const getStatusBadge = () => {
@@ -78,6 +94,9 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
 
     if (status === 'Removed') return null;
 
+    const imageSrc = getImageSrc();
+    const showImage = imageSrc && !imageError;
+
     return (
         <Link href={`/event/${id}`} className="group">
             <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden ${status === 'Expired' ? 'opacity-60' : ''}`}>
@@ -85,17 +104,16 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
                     {/* Status Badge */}
                     {getStatusBadge()}
 
-                    {getImageSrc() ? (
+                    {showImage ? (
                         <img
-                            src={getImageSrc()!}
+                            src={imageSrc}
                             alt={name}
-                            crossOrigin="anonymous"
-                            referrerPolicy="no-referrer"
+                            onError={() => setImageError(true)}
                             className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${status === 'Expired' ? 'grayscale' : ''}`}
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-white text-5xl">
-                            🎭
+                            {getCategoryEmoji(category)}
                         </div>
                     )}
 
