@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import EventCard from '@/components/event/EventCard';
 import { useCity } from '@/contexts/CityContext';
 
@@ -236,14 +237,7 @@ export default function Home() {
                 )}
             </section>
 
-            {/* Footer */}
-            <footer className="bg-slate-900 text-white py-12 mt-20">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <p className="text-slate-400">
-                        © 2025 BiletLink. Made with 💙 by AI
-                    </p>
-                </div>
-            </footer>
+            <Footer />
         </div>
     );
 }
