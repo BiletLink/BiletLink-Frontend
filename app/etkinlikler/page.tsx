@@ -84,9 +84,48 @@ export default function EventsPage() {
 
             let filteredData = data;
 
+            // Client-side date filtering
+            if (activeDateFilter !== 'all') {
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+
+                filteredData = data.filter((event: Event) => {
+                    const eventDate = new Date(event.date);
+
+                    switch (activeDateFilter) {
+                        case 'today':
+                            return eventDate >= today && eventDate < tomorrow;
+                        case 'week': {
+                            const weekEnd = new Date(today);
+                            weekEnd.setDate(weekEnd.getDate() + 7);
+                            return eventDate >= today && eventDate < weekEnd;
+                        }
+                        case 'month': {
+                            const monthEnd = new Date(today);
+                            monthEnd.setMonth(monthEnd.getMonth() + 1);
+                            return eventDate >= today && eventDate < monthEnd;
+                        }
+                        case 'weekend': {
+                            // Find next Saturday and Sunday
+                            const dayOfWeek = today.getDay();
+                            const daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
+                            const saturday = new Date(today);
+                            saturday.setDate(saturday.getDate() + daysUntilSaturday);
+                            const monday = new Date(saturday);
+                            monday.setDate(monday.getDate() + 2);
+                            return eventDate >= saturday && eventDate < monday;
+                        }
+                        default:
+                            return true;
+                    }
+                });
+            }
+
             // Client-side price filtering
             if (activePriceFilter !== 'all') {
-                filteredData = data.filter((event: Event) => {
+                filteredData = filteredData.filter((event: Event) => {
                     switch (activePriceFilter) {
                         case 'free': return event.minPrice === 0;
                         case '0-100': return event.minPrice > 0 && event.minPrice <= 100;
@@ -123,11 +162,11 @@ export default function EventsPage() {
             setLoading(false);
             setLoadingMore(false);
         }
-    }, [activeCategory, searchQuery, selectedCity, offset, activePriceFilter, sortBy]);
+    }, [activeCategory, searchQuery, selectedCity, offset, activeDateFilter, activePriceFilter, sortBy]);
 
     useEffect(() => {
         fetchEvents(true);
-    }, [activeCategory, searchQuery, selectedCity, activePriceFilter, sortBy]);
+    }, [activeCategory, searchQuery, selectedCity, activeDateFilter, activePriceFilter, sortBy]);
 
     const loadMore = () => {
         if (!loadingMore && hasMore) {
@@ -186,8 +225,8 @@ export default function EventsPage() {
                                     key={cat}
                                     onClick={() => setActiveCategory(cat)}
                                     className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${activeCategory === cat
-                                            ? 'bg-blue-600 text-white shadow-lg'
-                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                        ? 'bg-blue-600 text-white shadow-lg'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                         }`}
                                 >
                                     {cat}
@@ -233,8 +272,8 @@ export default function EventsPage() {
                                             key={filter.id}
                                             onClick={() => setActiveDateFilter(filter.id)}
                                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeDateFilter === filter.id
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                                 }`}
                                         >
                                             {filter.name}
@@ -252,8 +291,8 @@ export default function EventsPage() {
                                             key={filter.id}
                                             onClick={() => setActivePriceFilter(filter.id)}
                                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activePriceFilter === filter.id
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                                 }`}
                                         >
                                             {filter.name}
