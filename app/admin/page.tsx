@@ -328,6 +328,7 @@ function ScheduledJobsControl() {
     const [jobs, setJobs] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [newCron, setNewCron] = useState('');
+    const [newCity, setNewCity] = useState('');
     const [platform, setPlatform] = useState('biletix');
 
     useEffect(() => {
@@ -363,12 +364,13 @@ function ScheduledJobsControl() {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ scraperType: platform, cronExpression: newCron })
+                body: JSON.stringify({ scraperType: platform, cronExpression: newCron, city: newCity })
             });
             const data = await response.json();
             alert(data.message);
             fetchJobs();
             setNewCron('');
+            setNewCity('');
         } catch (error) {
             alert('Job eklenemedi');
         } finally {
@@ -410,7 +412,7 @@ function ScheduledJobsControl() {
             <h3 className="text-lg font-semibold text-white mb-4">⏰ Zamanlanmış Görevler (Cron Jobs)</h3>
 
             {/* Add New Job */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-slate-900 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-slate-900 rounded-lg">
                 <div>
                     <label className="block text-slate-400 text-sm mb-2">Platform</label>
                     <select
@@ -421,6 +423,16 @@ function ScheduledJobsControl() {
                         <option value="biletix">Biletix</option>
                         <option value="bubilet">Bubilet</option>
                     </select>
+                </div>
+                <div>
+                    <label className="block text-slate-400 text-sm mb-2">Şehir (Opsiyonel)</label>
+                    <input
+                        type="text"
+                        value={newCity}
+                        onChange={(e) => setNewCity(e.target.value)}
+                        placeholder="Örn: Istanbul"
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    />
                 </div>
                 <div>
                     <label className="block text-slate-400 text-sm mb-2">Cron Expression (örn: 0 3 * * *)</label>
@@ -451,6 +463,7 @@ function ScheduledJobsControl() {
                         <tr>
                             <th className="px-4 py-3">ID</th>
                             <th className="px-4 py-3">Tip</th>
+                            <th className="px-4 py-3">Şehir</th>
                             <th className="px-4 py-3">Cron</th>
                             <th className="px-4 py-3">Son Çalışma</th>
                             <th className="px-4 py-3">Sonraki Çalışma</th>
@@ -462,6 +475,7 @@ function ScheduledJobsControl() {
                             <tr key={job.id} className="hover:bg-slate-700/50">
                                 <td className="px-4 py-3 font-mono text-xs">{job.id}</td>
                                 <td className="px-4 py-3 text-white">{job.type}</td>
+                                <td className="px-4 py-3 text-emerald-400">{job.city}</td>
                                 <td className="px-4 py-3 font-mono text-orange-400">{job.cron}</td>
                                 <td className="px-4 py-3">{job.lastExecution ? new Date(job.lastExecution).toLocaleString('tr-TR') : '-'}</td>
                                 <td className="px-4 py-3">{job.nextExecution ? new Date(job.nextExecution).toLocaleString('tr-TR') : '-'}</td>
@@ -483,7 +497,7 @@ function ScheduledJobsControl() {
                         ))}
                         {jobs.length === 0 && (
                             <tr>
-                                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                                     Henüz zamanlanmış görev bulunmuyor.
                                 </td>
                             </tr>
