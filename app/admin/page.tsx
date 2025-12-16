@@ -170,7 +170,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Scheduled Jobs Control */}
-                <ScheduledJobsControl />
+                {/* <ScheduledJobsControl /> */}
 
                 {/* Scraper Control */}
                 <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8">
