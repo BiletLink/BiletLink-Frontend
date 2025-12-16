@@ -169,6 +169,9 @@ export default function AdminDashboard() {
                     />
                 </div>
 
+                {/* Scheduled Jobs Control */}
+                <ScheduledJobsControl />
+
                 {/* Scraper Control */}
                 <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8">
                     <h3 className="text-lg font-semibold text-white mb-4">🔄 Scraper Kontrolü</h3>
