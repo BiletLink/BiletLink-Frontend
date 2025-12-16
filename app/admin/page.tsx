@@ -93,13 +93,11 @@ export default function AdminDashboard() {
         return new Date(dateStr).toLocaleString('tr-TR');
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-            </div>
-        );
-    }
+    if (loading) return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+        </div>
+    );
 
     return (
         <div className="min-h-screen bg-slate-900">
@@ -169,8 +167,8 @@ export default function AdminDashboard() {
                     />
                 </div>
 
-                {/* Scheduled Jobs Control */}
-                {/* <ScheduledJobsControl /> */}
+                {/* Scheduled Jobs Control - Moved to TOP */}
+                <ScheduledJobsControl />
 
                 {/* Scraper Control */}
                 <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8">
@@ -298,37 +296,29 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
+                {/* Quick Links */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <Link href="/admin/events" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-blue-500 transition group">
+                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400">🎫 Events Yönetimi</h3>
+                        <p className="text-slate-400 text-sm">Etkinlikleri görüntüle, düzenle veya sil</p>
+                    </Link>
+                    <Link href="/admin/artists" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-purple-500 transition group">
+                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-purple-400">🎤 Artists Yönetimi</h3>
+                        <p className="text-slate-400 text-sm">Sanatçıları görüntüle ve düzenle</p>
+                    </Link>
+                    <Link href="/admin/venues" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-orange-500 transition group">
+                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-orange-400">🏛️ Venues Yönetimi</h3>
+                        <p className="text-slate-400 text-sm">Mekanları görüntüle ve düzenle</p>
+                    </Link>
+                    <Link href="/admin/analytics" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-green-500 transition group">
+                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-green-400">📊 Analytics</h3>
+                        <p className="text-slate-400 text-sm">Görüntülenme, tıklama ve popülerlik istatistikleri</p>
+                    </Link>
+                </div>
+            </main>
         </div>
-
-                {/* Scheduled Jobs Control */ }
-    <ScheduledJobsControl />
-
-    {/* Quick Links */ }
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Link href="/admin/events" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-blue-500 transition group">
-            <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400">🎫 Events Yönetimi</h3>
-            <p className="text-slate-400 text-sm">Etkinlikleri görüntüle, düzenle veya sil</p>
-        </Link>
-        <Link href="/admin/artists" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-purple-500 transition group">
-            <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-purple-400">🎤 Artists Yönetimi</h3>
-            <p className="text-slate-400 text-sm">Sanatçıları görüntüle ve düzenle</p>
-        </Link>
-        <Link href="/admin/venues" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-orange-500 transition group">
-            <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-orange-400">🏛️ Venues Yönetimi</h3>
-            <p className="text-slate-400 text-sm">Mekanları görüntüle ve düzenle</p>
-        </Link>
-        <Link href="/admin/analytics" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-green-500 transition group">
-            <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-green-400">📊 Analytics</h3>
-            <p className="text-slate-400 text-sm">Görüntülenme, tıklama ve popülerlik istatistikleri</p>
-        </Link>
-    </div>
-            </main >
-        </div >
     );
 }
-
-
-
 
 interface StatCardProps {
     title: string;
