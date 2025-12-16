@@ -1,0 +1,40 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VDS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: root
+          key: ${{ secrets.VDS_SSH_KEY }}
+          script: |
+            cd /opt/biletlink
+            
+            # Pull latest code
+            git -C BiletLink-Frontend pull origin main || git clone https://github.com/BiletLink/BiletLink-Frontend.git
+            
+            # Build and deploy with zero-downtime
+            docker compose build frontend
+            docker compose up -d --no-deps --force-recreate frontend
+            
+            # Wait for health check
+            echo "Waiting for Frontend health check..."
+            for i in {1..30}; do
+              if curl -sf http://localhost:3000 > /dev/null; then
+                echo "✅ Frontend is healthy!"
+                exit 0
+              fi
+              sleep 2
+            done
+            
+            echo "❌ Health check failed!"
+            docker compose logs frontend --tail=50
+            exit 1

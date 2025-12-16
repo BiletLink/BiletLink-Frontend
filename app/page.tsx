@@ -62,7 +62,8 @@ export default function Home() {
                 setLoadingMore(true);
             }
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.biletlink.co';
+            console.log('Fetching events from:', apiUrl); // Debug log
             const params = new URLSearchParams({
                 limit: LIMIT.toString(),
                 offset: currentOffset.toString(),

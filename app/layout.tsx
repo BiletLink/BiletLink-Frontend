@@ -8,6 +8,9 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
     title: "BiletLink - Tüm Etkinlikler Tek Platformda",
     description: "Konser, tiyatro, spor ve daha fazlası. En iyi fiyatlarla biletini al!",
+    icons: {
+        icon: '/favicon.ico',
+    },
 };
 
 export default function RootLayout({

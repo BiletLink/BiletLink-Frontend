@@ -149,6 +149,7 @@ export default function EventDetailPage() {
                     <img
                         src={event.imageUrl}
                         alt={event.name}
+                        referrerPolicy="no-referrer"
                         className="w-full h-full object-cover opacity-40"
                     />
                 )}
@@ -209,7 +210,7 @@ export default function EventDetailPage() {
                                 <div className="flex items-center gap-4">
                                     <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
                                         {event.artist.imageUrl ? (
-                                            <img src={event.artist.imageUrl} alt={event.artist.name} className="w-full h-full object-cover" />
+                                            <img src={event.artist.imageUrl} alt={event.artist.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                                         ) : (
                                             <span className="text-3xl">🎤</span>
                                         )}

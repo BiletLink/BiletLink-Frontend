@@ -37,14 +37,14 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
     const getImageSrc = () => {
         if (!imageUrl) return null;
 
-        // Bubilet images - direct URL (no CORS issues)
+        // Bubilet images - direct URL
         if (imageUrl.startsWith('http') && imageUrl.includes('bubilet')) {
             return imageUrl;
         }
 
-        // Biletix full URL - use proxy
+        // Biletix full URL - use directly (no CORS for img tags)
         if (imageUrl.startsWith('http') && imageUrl.includes('biletix.com')) {
-            return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+            return imageUrl;
         }
 
         // Other external images
@@ -57,9 +57,8 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
             return `${API_BASE}${imageUrl}`;
         }
 
-        // Biletix partial path - construct full URL and use proxy
-        const fullUrl = `https://www.biletix.com/static/images/live/event/eventimages/${imageUrl}`;
-        return `/api/image-proxy?url=${encodeURIComponent(fullUrl)}`;
+        // Biletix partial path - construct full URL
+        return `https://www.biletix.com/static/images/live/event/eventimages/${imageUrl}`;
     };
 
     const getCategoryColor = (cat: string) => {
@@ -127,6 +126,7 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
                         <img
                             src={imageSrc}
                             alt={name}
+                            referrerPolicy="no-referrer"
                             onError={() => setImageError(true)}
                             className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${status === 'Expired' ? 'grayscale' : ''}`}
                         />
