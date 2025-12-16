@@ -18,7 +18,9 @@ jobs:
           script: |
             cd /opt/biletlink
             
-            # Pull latest code
+            echo "🔄 Starting Deployment for Frontend..."
+            
+            # 1. Pull latest code
             if [ -d "BiletLink-Frontend" ]; then
               cd BiletLink-Frontend
               git pull origin main
@@ -27,20 +29,55 @@ jobs:
               git clone https://github.com/BiletLink/BiletLink-Frontend.git
             fi
             
-            # Build and deploy with zero-downtime
+            # 2. Build new image (Zero-downtime phase)
+            echo "🏗️ Building new image..."
             docker compose build frontend
+            
+            # 3. Backup current image for Rollback (assuming image name is biletlink-frontend based on project)
+            # Find the actual image name used by compose service
+            IMAGE_NAME=$(docker compose images -q frontend | xargs docker inspect --format='{{.RepoTags}}' | tr -d '[]' | awk '{print $1}')
+            if [ -z "$IMAGE_NAME" ]; then IMAGE_NAME="biletlink-frontend"; fi
+            
+            echo "💾 Backing up current image ($IMAGE_NAME)..."
+            if docker image inspect $IMAGE_NAME > /dev/null 2>&1; then
+                docker tag $IMAGE_NAME ${IMAGE_NAME}:backup
+            fi
+
+            # 4. Deploy (Short downtime)
+            echo "🚀 Deploying new container..."
             docker compose up -d --no-deps --force-recreate frontend
             
-            # Wait for health check (Internal)
-            echo "Waiting for Frontend health check..."
-            for i in {1..30}; do
-              if docker exec biletlink-frontend wget --spider -q http://localhost:3000; then
-                echo "✅ Frontend is healthy!"
-                exit 0
+            # 5. Health Check & Rollback Strategy
+            echo "Checking system health..."
+            HEALTHY=false
+            for i in {1..12}; do # Wait up to 60s
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' biletlink-frontend 2>/dev/null)
+              echo "Attempt $i: Status is $STATUS"
+              if [ "$STATUS" = "healthy" ]; then
+                HEALTHY=true
+                break
               fi
-              sleep 2
+              sleep 5
             done
             
-            echo "❌ Health check failed!"
-            docker compose logs frontend --tail=50
-            exit 1
+            if [ "$HEALTHY" = "true" ]; then
+              echo "✅ Deployment Successful! Frontend is healthy."
+              exit 0
+            else
+              echo "❌ Deployment Failed! Health check status: $STATUS"
+              echo "🔄 Initiating ROLLBACK..."
+              
+              if docker image inspect ${IMAGE_NAME}:backup > /dev/null 2>&1; then
+                # Restore backup
+                docker tag ${IMAGE_NAME}:backup $IMAGE_NAME
+                # Redeploy old image
+                docker compose up -d --no-deps --force-recreate frontend
+                echo "✅ Rollback completed. System restored to previous version."
+              else
+                echo "⚠️ Rollback failed: No backup image found."
+              fi
+              
+              echo "Logs from failed container:"
+              docker compose logs frontend --tail=50
+              exit 1
+            fi
