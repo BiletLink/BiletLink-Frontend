@@ -19,16 +19,22 @@ jobs:
             cd /opt/biletlink
             
             # Pull latest code
-            git -C BiletLink-Frontend pull origin main || git clone https://github.com/BiletLink/BiletLink-Frontend.git
+            if [ -d "BiletLink-Frontend" ]; then
+              cd BiletLink-Frontend
+              git pull origin main
+              cd ..
+            else
+              git clone https://github.com/BiletLink/BiletLink-Frontend.git
+            fi
             
             # Build and deploy with zero-downtime
             docker compose build frontend
             docker compose up -d --no-deps --force-recreate frontend
             
-            # Wait for health check
+            # Wait for health check (Internal)
             echo "Waiting for Frontend health check..."
             for i in {1..30}; do
-              if curl -sf http://localhost:3000 > /dev/null; then
+              if docker exec biletlink-frontend wget --spider -q http://localhost:3000; then
                 echo "✅ Frontend is healthy!"
                 exit 0
               fi
