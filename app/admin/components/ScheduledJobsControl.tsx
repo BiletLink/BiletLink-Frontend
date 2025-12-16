@@ -84,7 +84,6 @@ export default function ScheduledJobsControl() {
             if (response.ok) {
                 alert('Görev başarıyla eklendi!');
                 fetchJobs();
-                // Reset form slightly?
                 if (cronMode === 'manual') setCronManual('');
                 setCity('');
             } else {
@@ -217,7 +216,7 @@ export default function ScheduledJobsControl() {
                     </div>
 
                     {/* RIGHT COLUMN: Chaining */}
-                    <div className="space-y-4 border-l border-slate-700 pl-0 lg:pl-8">
+                    <div className="space-y-4 border-t lg:border-t-0 lg:border-l border-slate-700 pt-8 lg:pt-0 pl-0 lg:pl-8">
                         <h4 className="text-purple-400 font-semibold border-b border-slate-700 pb-2 flex justify-between items-center">
                             <span>2. İş Akışı / Zincirleme</span>
                             <input
@@ -257,17 +256,30 @@ export default function ScheduledJobsControl() {
                                 </div>
                             </div>
                         </div>
-
-                        <div className="pt-8">
-                            <button
-                                onClick={addJob}
-                                disabled={loading}
-                                className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 font-semibold shadow-lg shadow-blue-900/20"
-                            >
-                                {loading ? 'Ekleniyor...' : '⚡ Görevi Planla'}
-                            </button>
-                        </div>
                     </div>
+                </div>
+
+                {/* Subimit Button - FULL WIDTH below columns */}
+                <div className="mt-8 border-t border-slate-800 pt-6">
+                    <button
+                        onClick={addJob}
+                        disabled={loading}
+                        className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 font-semibold shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2"
+                    >
+                        {loading ? (
+                            <>
+                                <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
+                                Ekleniyor...
+                            </>
+                        ) : (
+                            <>
+                                <span>⚡</span> Gorevi Planla
+                            </>
+                        )}
+                    </button>
+                    <p className="text-center text-xs text-slate-500 mt-2">
+                        {chainEnabled ? 'Bu işlem birbirini takip eden 2 görevi planlayacaktır.' : 'Tek bir zamanlanmış görev oluşturulacaktır.'}
+                    </p>
                 </div>
             </div>
 
