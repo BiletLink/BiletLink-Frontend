@@ -81,7 +81,16 @@ export default function Home() {
                 params.append('city', selectedCity.name);
             }
 
-            const response = await fetch(`${apiUrl}/api/events?${params}`);
+            // Cache busting
+            params.append('_t', Date.now().toString());
+
+            const response = await fetch(`${apiUrl}/api/events?${params}`, {
+                cache: 'no-store',
+                headers: {
+                    'Pragma': 'no-cache',
+                    'Cache-Control': 'no-cache'
+                }
+            });
             const data = await response.json();
 
             if (reset) {

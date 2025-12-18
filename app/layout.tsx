@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { CityProvider } from "@/contexts/CityContext";
 
-const inter = Inter({ subsets: ["latin"] });
+// Using system font stack instead of Google Fonts to avoid build issues
+const fontClassName = "font-sans";
 
 export const metadata: Metadata = {
     title: "BiletLink - Tüm Etkinlikler Tek Platformda",
@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="tr">
-            <body className={inter.className}>
+            <body className={fontClassName}>
                 <CityProvider>
                     {children}
                 </CityProvider>
