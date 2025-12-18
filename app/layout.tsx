@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { CityProvider } from "@/contexts/CityContext";
-import MaintenanceBanner from "@/components/MaintenanceBanner";
 
 // Using system font stack instead of Google Fonts to avoid build issues
 const fontClassName = "font-sans";
@@ -22,7 +21,6 @@ export default function RootLayout({
     return (
         <html lang="tr">
             <body className={fontClassName}>
-                <MaintenanceBanner />
                 <CityProvider>
                     {children}
                 </CityProvider>
