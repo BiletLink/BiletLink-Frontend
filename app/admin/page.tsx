@@ -20,6 +20,10 @@ interface DashboardStats {
     eventsThisMonth: number;
     totalViews: number;
     totalClicks: number;
+    // Detaylı platform istatistikleri
+    biletixOnlyEvents: number;
+    bubiletOnlyEvents: number;
+    sharedPlatformEvents: number;
 }
 
 export default function AdminDashboard() {
@@ -177,32 +181,67 @@ export default function AdminDashboard() {
 
                 {/* Detaylı İstatistikler Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    {/* Platform Dağılımı */}
+                    {/* Platform Dağılımı - Geliştirilmiş */}
                     <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                        <h3 className="text-lg font-semibold text-white mb-4">🌐 Platform Dağılımı</h3>
-                        <div className="space-y-3">
-                            {stats?.platformStats && Object.entries(stats.platformStats).map(([platform, count]) => {
-                                const total = Object.values(stats.platformStats).reduce((a, b) => a + b, 0);
-                                const percentage = total > 0 ? (count / total) * 100 : 0;
-                                return (
-                                    <div key={platform}>
-                                        <div className="flex justify-between text-sm mb-1">
-                                            <span className="text-slate-300 capitalize">{platform}</span>
-                                            <span className="text-white font-medium">{count.toLocaleString('tr-TR')}</span>
-                                        </div>
-                                        <div className="w-full bg-slate-700 rounded-full h-2">
-                                            <div
-                                                className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-500"
-                                                style={{ width: `${percentage}%` }}
-                                            />
-                                        </div>
+                        <h3 className="text-lg font-semibold text-white mb-2">🌐 Platform Dağılımı</h3>
+                        <p className="text-slate-400 text-sm mb-4">
+                            Toplam <span className="text-white font-semibold">{stats?.activeEvents?.toLocaleString('tr-TR') || 0}</span> aktif etkinlik
+                        </p>
+                        <div className="space-y-4">
+                            {/* Sadece Biletix */}
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full bg-blue-500"></span>
+                                        <span className="text-slate-300 text-sm">🎫 Sadece Biletix</span>
                                     </div>
-                                );
-                            })}
-                            {(!stats?.platformStats || Object.keys(stats.platformStats).length === 0) && (
-                                <p className="text-slate-400 text-sm">Veri yok</p>
-                            )}
+                                    <span className="text-white font-semibold">{stats?.biletixOnlyEvents?.toLocaleString('tr-TR') || 0}</span>
+                                </div>
+                                <div className="w-full bg-slate-700 rounded-full h-2.5">
+                                    <div
+                                        className="bg-gradient-to-r from-blue-500 to-blue-400 h-2.5 rounded-full transition-all duration-500"
+                                        style={{ width: `${stats?.activeEvents ? ((stats?.biletixOnlyEvents || 0) / stats.activeEvents) * 100 : 0}%` }}
+                                    />
+                                </div>
+                            </div>
+                            {/* Sadece Bubilet */}
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full bg-purple-500"></span>
+                                        <span className="text-slate-300 text-sm">🎟️ Sadece Bubilet</span>
+                                    </div>
+                                    <span className="text-white font-semibold">{stats?.bubiletOnlyEvents?.toLocaleString('tr-TR') || 0}</span>
+                                </div>
+                                <div className="w-full bg-slate-700 rounded-full h-2.5">
+                                    <div
+                                        className="bg-gradient-to-r from-purple-500 to-purple-400 h-2.5 rounded-full transition-all duration-500"
+                                        style={{ width: `${stats?.activeEvents ? ((stats?.bubiletOnlyEvents || 0) / stats.activeEvents) * 100 : 0}%` }}
+                                    />
+                                </div>
+                            </div>
+                            {/* Her İki Platform */}
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></span>
+                                        <span className="text-slate-300 text-sm">✨ Her İki Platform</span>
+                                    </div>
+                                    <span className="text-white font-semibold">{stats?.sharedPlatformEvents?.toLocaleString('tr-TR') || 0}</span>
+                                </div>
+                                <div className="w-full bg-slate-700 rounded-full h-2.5">
+                                    <div
+                                        className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 h-2.5 rounded-full transition-all duration-500"
+                                        style={{ width: `${stats?.activeEvents ? ((stats?.sharedPlatformEvents || 0) / stats.activeEvents) * 100 : 0}%` }}
+                                    />
+                                </div>
+                            </div>
                         </div>
+                        {stats?.sharedPlatformEvents && stats.sharedPlatformEvents > 0 && (
+                            <p className="text-emerald-400 text-sm mt-4 pt-3 border-t border-slate-700">
+                                ✅ <span className="font-semibold">{stats.sharedPlatformEvents.toLocaleString('tr-TR')}</span> etkinlik her iki platformda karşılaştırmalı sunuluyor
+                            </p>
+                        )}
                     </div>
 
                     {/* Kategori Dağılımı */}
@@ -233,9 +272,9 @@ export default function AdminDashboard() {
                             {stats?.cityStats && Object.entries(stats.cityStats).map(([city, count], index) => (
                                 <div key={city} className="flex items-center gap-3">
                                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${index === 0 ? 'bg-yellow-500 text-black' :
-                                            index === 1 ? 'bg-slate-400 text-black' :
-                                                index === 2 ? 'bg-orange-600 text-white' :
-                                                    'bg-slate-600 text-white'
+                                        index === 1 ? 'bg-slate-400 text-black' :
+                                            index === 2 ? 'bg-orange-600 text-white' :
+                                                'bg-slate-600 text-white'
                                         }`}>
                                         {index + 1}
                                     </span>
