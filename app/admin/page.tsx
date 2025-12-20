@@ -12,6 +12,8 @@ interface DashboardStats {
     activeEvents: number;
     expiredEvents: number;
     lastScrapedAt: string | null;
+    categoryStats: { [key: string]: number };
+    platformStats: { [key: string]: number };
 }
 
 export default function AdminDashboard() {
@@ -167,7 +169,52 @@ export default function AdminDashboard() {
                     />
                 </div>
 
-                {/* Scheduled Jobs Control - Moved to TOP */}
+                {/* Detailed Stats Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    {/* Platform Distribution */}
+                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                        <h3 className="text-lg font-semibold text-white mb-4">🌐 Platform Dağılımı (Birleştirilen Bilgiler)</h3>
+                        <div className="space-y-4">
+                            {stats?.platformStats && Object.entries(stats.platformStats).map(([platform, count]) => (
+                                <div key={platform}>
+                                    <div className="flex justify-between text-sm mb-1">
+                                        <span className="text-slate-300 capitalize">{platform}</span>
+                                        <span className="text-white font-bold">{count}</span>
+                                    </div>
+                                    <div className="w-full bg-slate-700 rounded-full h-2.5">
+                                        <div
+                                            className={`h-2.5 rounded-full ${platform.toLowerCase().includes('biletix') ? 'bg-blue-500' : 'bg-purple-500'}`}
+                                            style={{ width: `${(count / (stats.totalEvents || 1)) * 100}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Category Breakdown */}
+                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                        <h3 className="text-lg font-semibold text-white mb-4">📂 Kategori Dağılımı</h3>
+                        <div className="space-y-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                            {stats?.categoryStats && Object.entries(stats.categoryStats)
+                                .sort(([, a], [, b]) => b - a)
+                                .map(([category, count]) => (
+                                    <div key={category}>
+                                        <div className="flex justify-between text-sm mb-1">
+                                            <span className="text-slate-300">{category}</span>
+                                            <span className="text-white font-bold">{count}</span>
+                                        </div>
+                                        <div className="w-full bg-slate-700 rounded-full h-2">
+                                            <div
+                                                className="bg-emerald-500 h-2 rounded-full"
+                                                style={{ width: `${(count / (stats.totalEvents || 1)) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                ))}
+                        </div>
+                    </div>
+                </div>
                 <ScheduledJobsControl />
 
                 {/* Scraper Control */}
