@@ -12,6 +12,14 @@ interface DashboardStats {
     activeEvents: number;
     expiredEvents: number;
     lastScrapedAt: string | null;
+    // Detaylı istatistikler
+    categoryStats: Record<string, number>;
+    platformStats: Record<string, number>;
+    cityStats: Record<string, number>;
+    eventsThisWeek: number;
+    eventsThisMonth: number;
+    totalViews: number;
+    totalClicks: number;
 }
 
 export default function AdminDashboard() {
@@ -167,6 +175,103 @@ export default function AdminDashboard() {
                     />
                 </div>
 
+                {/* Detaylı İstatistikler Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    {/* Platform Dağılımı */}
+                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                        <h3 className="text-lg font-semibold text-white mb-4">🌐 Platform Dağılımı</h3>
+                        <div className="space-y-3">
+                            {stats?.platformStats && Object.entries(stats.platformStats).map(([platform, count]) => {
+                                const total = Object.values(stats.platformStats).reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? (count / total) * 100 : 0;
+                                return (
+                                    <div key={platform}>
+                                        <div className="flex justify-between text-sm mb-1">
+                                            <span className="text-slate-300 capitalize">{platform}</span>
+                                            <span className="text-white font-medium">{count.toLocaleString('tr-TR')}</span>
+                                        </div>
+                                        <div className="w-full bg-slate-700 rounded-full h-2">
+                                            <div
+                                                className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-500"
+                                                style={{ width: `${percentage}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            {(!stats?.platformStats || Object.keys(stats.platformStats).length === 0) && (
+                                <p className="text-slate-400 text-sm">Veri yok</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Kategori Dağılımı */}
+                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                        <h3 className="text-lg font-semibold text-white mb-4">🎭 Kategori Dağılımı</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {stats?.categoryStats && Object.entries(stats.categoryStats)
+                                .sort((a, b) => b[1] - a[1])
+                                .slice(0, 10)
+                                .map(([category, count]) => (
+                                    <span
+                                        key={category}
+                                        className="px-3 py-1.5 bg-gradient-to-r from-purple-600/30 to-pink-600/30 text-purple-300 rounded-lg text-sm border border-purple-500/30"
+                                    >
+                                        {category}: <span className="font-semibold text-white">{count.toLocaleString('tr-TR')}</span>
+                                    </span>
+                                ))}
+                            {(!stats?.categoryStats || Object.keys(stats.categoryStats).length === 0) && (
+                                <p className="text-slate-400 text-sm">Veri yok</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Şehir Dağılımı - Top 5 */}
+                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                        <h3 className="text-lg font-semibold text-white mb-4">🏙️ En Çok Etkinlik - Şehirler</h3>
+                        <div className="space-y-3">
+                            {stats?.cityStats && Object.entries(stats.cityStats).map(([city, count], index) => (
+                                <div key={city} className="flex items-center gap-3">
+                                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${index === 0 ? 'bg-yellow-500 text-black' :
+                                            index === 1 ? 'bg-slate-400 text-black' :
+                                                index === 2 ? 'bg-orange-600 text-white' :
+                                                    'bg-slate-600 text-white'
+                                        }`}>
+                                        {index + 1}
+                                    </span>
+                                    <span className="text-slate-300 flex-1">{city}</span>
+                                    <span className="text-white font-semibold">{count.toLocaleString('tr-TR')}</span>
+                                </div>
+                            ))}
+                            {(!stats?.cityStats || Object.keys(stats.cityStats).length === 0) && (
+                                <p className="text-slate-400 text-sm">Veri yok</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Analytics & Yaklaşan Etkinlikler */}
+                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                        <h3 className="text-lg font-semibold text-white mb-4">📊 Analytics Özet</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-slate-700/50 rounded-lg p-4 text-center">
+                                <p className="text-3xl font-bold text-green-400">{stats?.eventsThisWeek || 0}</p>
+                                <p className="text-slate-400 text-sm mt-1">Bu Hafta</p>
+                            </div>
+                            <div className="bg-slate-700/50 rounded-lg p-4 text-center">
+                                <p className="text-3xl font-bold text-blue-400">{stats?.eventsThisMonth || 0}</p>
+                                <p className="text-slate-400 text-sm mt-1">Bu Ay</p>
+                            </div>
+                            <div className="bg-slate-700/50 rounded-lg p-4 text-center">
+                                <p className="text-3xl font-bold text-purple-400">{(stats?.totalViews || 0).toLocaleString('tr-TR')}</p>
+                                <p className="text-slate-400 text-sm mt-1">👁️ Görüntülenme</p>
+                            </div>
+                            <div className="bg-slate-700/50 rounded-lg p-4 text-center">
+                                <p className="text-3xl font-bold text-orange-400">{(stats?.totalClicks || 0).toLocaleString('tr-TR')}</p>
+                                <p className="text-slate-400 text-sm mt-1">🖱️ Tıklama</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <ScheduledJobsControl />
 
