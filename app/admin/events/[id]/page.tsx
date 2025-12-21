@@ -6,12 +6,14 @@ import Link from 'next/link';
 
 interface Event {
     id: string;
-    name: string;
+    displayName: string;
     description: string;
-    date: string;
+    eventDate: string;
     category: string;
     status: string;
     imageUrl: string;
+    isManuallyEdited: boolean;
+    manuallyEditedAt: string | null;
     artist: { name: string } | null;
     venue: { name: string; city: string } | null;
 }
@@ -20,6 +22,7 @@ export default function EditEvent() {
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [saveType, setSaveType] = useState<'normal' | 'manual' | null>(null);
     const [form, setForm] = useState({
         name: '',
         description: '',
@@ -56,10 +59,10 @@ export default function EditEvent() {
             const data = await response.json();
             setEvent(data);
             setForm({
-                name: data.name || '',
+                name: data.displayName || data.name || '',
                 description: data.description || '',
                 category: data.category || '',
-                date: data.date ? data.date.split('T')[0] : '',
+                date: data.eventDate ? data.eventDate.split('T')[0] : (data.date ? data.date.split('T')[0] : ''),
                 imageUrl: data.imageUrl || '',
                 status: data.status || 'Active'
             });
@@ -70,15 +73,19 @@ export default function EditEvent() {
         }
     };
 
-    const handleSave = async (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent, isManual: boolean = false) => {
         e.preventDefault();
         setSaving(true);
+        setSaveType(isManual ? 'manual' : 'normal');
 
         try {
             const token = localStorage.getItem('adminToken');
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const endpoint = isManual
+                ? `${apiUrl}/api/admin/events/${params.id}/manual`
+                : `${apiUrl}/api/admin/events/${params.id}`;
 
-            const response = await fetch(`${apiUrl}/api/admin/events/${params.id}`, {
+            const response = await fetch(endpoint, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -92,7 +99,10 @@ export default function EditEvent() {
             });
 
             if (response.ok) {
-                alert('Event güncellendi');
+                const message = isManual
+                    ? 'Event manuel olarak güncellendi. Scraper bu alanları değiştirmeyecek.'
+                    : 'Event güncellendi';
+                alert(message);
                 router.push('/admin/events');
             } else {
                 alert('Güncelleme başarısız');
@@ -101,6 +111,29 @@ export default function EditEvent() {
             alert('Bir hata oluştu');
         } finally {
             setSaving(false);
+            setSaveType(null);
+        }
+    };
+
+    const handleResetManual = async () => {
+        if (!confirm('Manuel düzenleme bayrağını kaldırmak istediğinize emin misiniz? Scraper bu etkinliği tekrar güncelleyebilecek.')) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem('adminToken');
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/admin/events/${params.id}/reset-manual`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                alert('Manuel düzenleme bayrağı kaldırıldı.');
+                fetchEvent(token!);
+            }
+        } catch (error) {
+            alert('Bir hata oluştu');
         }
     };
 
@@ -129,9 +162,33 @@ export default function EditEvent() {
                         ← Geri
                     </Link>
                     <h2 className="text-2xl font-bold text-white">Event Düzenle</h2>
+                    {event?.isManuallyEdited && (
+                        <span className="px-3 py-1 bg-amber-500/20 text-amber-400 text-sm rounded-full border border-amber-500/30">
+                            ✏️ Manuel Düzenlenmiş
+                        </span>
+                    )}
                 </div>
 
-                <form onSubmit={handleSave} className="bg-slate-800 rounded-xl p-6 border border-slate-700 space-y-6">
+                {/* Manual Edit Warning */}
+                {event?.isManuallyEdited && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6">
+                        <p className="text-amber-400 text-sm">
+                            ⚠️ Bu etkinlik manuel olarak düzenlenmiş. Scraper bu etkinliğin isim, açıklama, kategori ve görsel alanlarını güncellemeyecek (sadece fiyat güncellenecek).
+                            <br />
+                            <span className="text-amber-500/70">
+                                Manuel düzenleme tarihi: {event.manuallyEditedAt ? new Date(event.manuallyEditedAt).toLocaleString('tr-TR') : '-'}
+                            </span>
+                        </p>
+                        <button
+                            onClick={handleResetManual}
+                            className="mt-2 text-xs text-amber-400 hover:text-amber-300 underline"
+                        >
+                            Bayrağı Kaldır (Scraper güncelleyebilsin)
+                        </button>
+                    </div>
+                )}
+
+                <form onSubmit={(e) => handleSave(e, false)} className="bg-slate-800 rounded-xl p-6 border border-slate-700 space-y-6">
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">Ad</label>
                         <input
@@ -212,13 +269,22 @@ export default function EditEvent() {
                         </p>
                     </div>
 
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 flex-wrap">
                         <button
                             type="submit"
                             disabled={saving}
                             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                         >
-                            {saving ? 'Kaydediliyor...' : 'Kaydet'}
+                            {saving && saveType === 'normal' ? 'Kaydediliyor...' : '💾 Kaydet'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => handleSave(e, true)}
+                            disabled={saving}
+                            className="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50"
+                            title="Manuel kaydet: Scraper bu değişikliklerin üzerine yazmayacak"
+                        >
+                            {saving && saveType === 'manual' ? 'Kaydediliyor...' : '✏️ Manuel Kaydet'}
                         </button>
                         <Link
                             href="/admin/events"
@@ -227,8 +293,12 @@ export default function EditEvent() {
                             İptal
                         </Link>
                     </div>
+                    <p className="text-xs text-slate-500">
+                        💡 <strong>Manuel Kaydet:</strong> Bu seçenek ile kaydettiğinizde scraper bu etkinliğin isim, açıklama, kategori ve görsel alanlarını değiştirmeyecek.
+                    </p>
                 </form>
             </main>
         </div>
     );
 }
+
