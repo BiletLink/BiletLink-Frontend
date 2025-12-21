@@ -6,62 +6,55 @@ type EventStatus = 'Active' | 'Expired' | 'SoldOut' | 'Removed';
 interface EventCardProps {
     id: string;
     name: string;
-    description: string;
+    description?: string | null;
     date: string;
     imageUrl?: string | null;
-    category: string;
-    minPrice: number;
+    category?: string | null;
+    minPrice?: number | null;
     venueCity?: string | null;
     status?: EventStatus;
 }
 
 export default function EventCard({ id, name, description, date, imageUrl, category, minPrice, venueCity, status = 'Active' }: EventCardProps) {
-    const API_BASE = 'http://localhost:5001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
     const [imageError, setImageError] = useState(false);
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('tr-TR', {
-            day: 'numeric',
-            month: 'long',
-            weekday: 'short',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('tr-TR', {
+                day: 'numeric',
+                month: 'long',
+                weekday: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (e) {
+            return dateString;
+        }
     };
 
-    const formatPrice = (price: number) => {
+    const formatPrice = (price?: number | null) => {
+        if (price === null || price === undefined) return '';
         return price > 0 ? `${price.toFixed(0)}₺` : 'Ücretsiz';
     };
 
     const getImageSrc = () => {
         if (!imageUrl) return null;
 
-        // Bubilet images - direct URL
-        if (imageUrl.startsWith('http') && imageUrl.includes('bubilet')) {
-            return imageUrl;
-        }
-
-        // Biletix full URL - use directly (no CORS for img tags)
-        if (imageUrl.startsWith('http') && imageUrl.includes('biletix.com')) {
-            return imageUrl;
-        }
-
-        // Other external images
         if (imageUrl.startsWith('http')) {
             return imageUrl;
         }
 
-        // Local images
         if (imageUrl.startsWith('/images')) {
             return `${API_BASE}${imageUrl}`;
         }
 
-        // Biletix partial path - construct full URL
         return `https://www.biletix.com/static/images/live/event/eventimages/${imageUrl}`;
     };
 
-    const getCategoryColor = (cat: string) => {
+    const getCategoryColor = (cat?: string | null) => {
+        if (!cat) return 'bg-blue-100 text-blue-700';
         const colors: Record<string, string> = {
             'Konser': 'bg-purple-100 text-purple-700',
             'Tiyatro': 'bg-rose-100 text-rose-700',
@@ -74,7 +67,8 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
         return colors[cat] || 'bg-blue-100 text-blue-700';
     };
 
-    const getCategoryEmoji = (cat: string) => {
+    const getCategoryEmoji = (cat?: string | null) => {
+        if (!cat) return '🎫';
         const emojis: Record<string, string> = {
             'Konser': '🎵',
             'Tiyatro': '🎭',
@@ -136,11 +130,13 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
                         </div>
                     )}
 
-                    <div className="absolute top-3 left-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getCategoryColor(category)}`}>
-                            {category}
-                        </span>
-                    </div>
+                    {category && (
+                        <div className="absolute top-3 left-3">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getCategoryColor(category)}`}>
+                                {category}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="p-5">
@@ -152,9 +148,11 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
                         {name}
                     </h3>
 
-                    <p className="text-slate-500 text-sm line-clamp-2 mb-4">
-                        {description}
-                    </p>
+                    {description && (
+                        <p className="text-slate-500 text-sm line-clamp-2 mb-4">
+                            {description}
+                        </p>
+                    )}
 
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                         <div className="text-slate-400 text-xs flex items-center">
@@ -164,9 +162,11 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
                             </svg>
                             {venueCity || 'İstanbul'}
                         </div>
-                        <div className="text-blue-600 font-bold text-lg">
-                            {formatPrice(minPrice)}
-                        </div>
+                        {minPrice != null && (
+                            <div className="text-blue-600 font-bold text-lg">
+                                {formatPrice(minPrice)}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
