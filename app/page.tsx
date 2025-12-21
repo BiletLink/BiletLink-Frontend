@@ -84,7 +84,7 @@ export default function Home() {
             // Cache busting
             params.append('_t', Date.now().toString());
 
-            const response = await fetch(`${apiUrl}/api/events?${params}`, {
+            const response = await fetch(`${apiUrl}/api/master-events?${params}`, {
                 cache: 'no-store',
                 headers: {
                     'Pragma': 'no-cache',
