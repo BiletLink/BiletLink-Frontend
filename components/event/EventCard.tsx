@@ -16,7 +16,7 @@ interface EventCardProps {
 }
 
 export default function EventCard({ id, name, description, date, imageUrl, category, minPrice, venueCity, status = 'Active' }: EventCardProps) {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.biletlink.co';
     const [imageError, setImageError] = useState(false);
 
     const formatDate = (dateString: string) => {
