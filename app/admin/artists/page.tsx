@@ -10,6 +10,7 @@ interface Artist {
     genre: string;
     bio: string;
     imageUrl: string;
+    isManuallyEdited?: boolean;
 }
 
 interface PagedResult {
@@ -28,6 +29,7 @@ export default function AdminArtists() {
     const [total, setTotal] = useState(0);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editForm, setEditForm] = useState({ name: '', genre: '', bio: '' });
+    const [saving, setSaving] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -72,12 +74,17 @@ export default function AdminArtists() {
         setEditForm({ name: artist.name, genre: artist.genre || '', bio: artist.bio || '' });
     };
 
-    const handleSave = async () => {
+    const handleSave = async (isManual: boolean = false) => {
         const token = localStorage.getItem('adminToken');
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+        setSaving(true);
 
         try {
-            const response = await fetch(`${apiUrl}/api/admin/artists/${editingId}`, {
+            const endpoint = isManual
+                ? `${apiUrl}/api/admin/artists/${editingId}/manual`
+                : `${apiUrl}/api/admin/artists/${editingId}`;
+
+            const response = await fetch(endpoint, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -87,11 +94,38 @@ export default function AdminArtists() {
             });
 
             if (response.ok) {
-                setArtists(artists.map(a => a.id === editingId ? { ...a, ...editForm } : a));
+                const updatedArtist = { ...editForm, isManuallyEdited: isManual };
+                setArtists(artists.map(a => a.id === editingId ? { ...a, ...updatedArtist } : a));
                 setEditingId(null);
+                if (isManual) {
+                    alert('Sanatçı manuel olarak güncellendi. Scraper bu sanatçıyı güncellemeyecek.');
+                }
             }
         } catch (error) {
             alert('Güncelleme başarısız');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleResetManual = async (id: string) => {
+        if (!confirm('Manuel düzenleme bayrağını kaldırmak istediğinize emin misiniz?')) return;
+
+        const token = localStorage.getItem('adminToken');
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+        try {
+            const response = await fetch(`${apiUrl}/api/admin/artists/${id}/reset-manual`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                setArtists(artists.map(a => a.id === id ? { ...a, isManuallyEdited: false } : a));
+                alert('Manuel düzenleme bayrağı kaldırıldı.');
+            }
+        } catch (error) {
+            alert('Bir hata oluştu');
         }
     };
 
@@ -174,7 +208,14 @@ export default function AdminArtists() {
                                                     className="px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white"
                                                 />
                                             ) : (
-                                                <span className="text-white font-medium">{artist.name}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-white font-medium">{artist.name}</span>
+                                                    {artist.isManuallyEdited && (
+                                                        <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full border border-amber-500/30" title="Manuel düzenlenmiş - scraper güncellemeyecek">
+                                                            ✏️
+                                                        </span>
+                                                    )}
+                                                </div>
                                             )}
                                         </td>
                                         <td className="px-4 py-4">
@@ -193,15 +234,39 @@ export default function AdminArtists() {
                                         </td>
                                         <td className="px-4 py-4 text-right">
                                             {editingId === artist.id ? (
-                                                <>
-                                                    <button onClick={handleSave} className="text-green-400 hover:text-green-300 mr-2">✓</button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={() => handleSave(false)}
+                                                        disabled={saving}
+                                                        className="text-green-400 hover:text-green-300 text-sm"
+                                                        title="Normal Kaydet"
+                                                    >
+                                                        ✓
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleSave(true)}
+                                                        disabled={saving}
+                                                        className="px-2 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700"
+                                                        title="Manuel Kaydet - Scraper güncellemeyecek"
+                                                    >
+                                                        ✏️ Manuel
+                                                    </button>
                                                     <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-slate-300">✗</button>
-                                                </>
+                                                </div>
                                             ) : (
-                                                <>
-                                                    <button onClick={() => handleEdit(artist)} className="text-blue-400 hover:text-blue-300 mr-4">✏️</button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button onClick={() => handleEdit(artist)} className="text-blue-400 hover:text-blue-300">✏️</button>
+                                                    {artist.isManuallyEdited && (
+                                                        <button
+                                                            onClick={() => handleResetManual(artist.id)}
+                                                            className="text-amber-400 hover:text-amber-300 text-xs"
+                                                            title="Manuel bayrağını kaldır"
+                                                        >
+                                                            ↺
+                                                        </button>
+                                                    )}
                                                     <button onClick={() => handleDelete(artist.id, artist.name)} className="text-red-400 hover:text-red-300">🗑️</button>
-                                                </>
+                                                </div>
                                             )}
                                         </td>
                                     </tr>
@@ -222,3 +287,4 @@ export default function AdminArtists() {
         </div>
     );
 }
+
