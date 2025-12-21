@@ -11,13 +11,16 @@ type EventStatus = 'Active' | 'Expired' | 'SoldOut' | 'Removed';
 interface Event {
     id: string;
     name: string;
-    description: string;
+    slug?: string;
     date: string;
     imageUrl?: string | null;
-    category: string;
-    minPrice: number;
+    category?: string;
+    minPrice?: number | null;
     venueCity?: string | null;
-    status?: EventStatus;
+    venueName?: string | null;
+    artistName?: string | null;
+    sourceCount?: number;
+    platforms?: string[];
 }
 
 const categories = ['Tümü', 'Konser', 'Tiyatro', 'Stand-Up', 'Spor', 'Festival', 'Müzikal', 'Opera', 'Bale', 'Gösteri'];
@@ -80,7 +83,7 @@ export default function EventsPage() {
                 params.append('city', selectedCity.name);
             }
 
-            const response = await fetch(`${apiUrl}/api/events?${params.toString()}`);
+            const response = await fetch(`${apiUrl}/api/master-events?${params.toString()}`);
             const data = await response.json();
 
             let filteredData = data;

@@ -5,33 +5,48 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 
-interface TicketPrice {
-    sourceName: string;
-    price: number;
-    currency: string;
-    url: string;
-    affiliateUrl?: string;
+interface TicketOption {
+    platform: string;
+    platformTitle: string;
+    eventUrl?: string;
+    sourceLogo?: string;
+    brandColor?: string;
+    isVip: boolean;
+    isDinnerIncluded: boolean;
+    isAvailable: boolean;
+    prices: {
+        price: number;
+        currency: string;
+        url?: string;
+        affiliateUrl?: string;
+    }[];
 }
 
 interface EventDetail {
     id: string;
     name: string;
-    description: string;
+    slug?: string;
+    description?: string;
     date: string;
     imageUrl?: string | null;
-    category: string;
-    minPrice: number;
-    ticketPrices: TicketPrice[];
+    category?: string;
+    minPrice?: number | null;
+    viewCount?: number;
+    ticketOptions: TicketOption[];
     artist?: {
         id: string;
         name: string;
+        slug?: string;
         imageUrl?: string;
     };
     venue?: {
         id: string;
         name: string;
+        slug?: string;
         city: string;
         address?: string;
+        latitude?: number;
+        longitude?: number;
     };
 }
 
@@ -70,7 +85,7 @@ export default function EventDetailPage() {
     const fetchEventDetail = async (id: string) => {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-            const response = await fetch(`${apiUrl}/api/events/${id}`);
+            const response = await fetch(`${apiUrl}/api/master-events/${id}`);
             if (!response.ok) throw new Error('Event not found');
             const data = await response.json();
             setEvent(data);
@@ -229,30 +244,34 @@ export default function EventDetailPage() {
                             <h2 className="text-xl font-bold text-gray-900 mb-2">🎟️ Bilet Fiyatları</h2>
                             <p className="text-gray-500 text-sm mb-6">En iyi fiyatları karşılaştırın</p>
 
-                            {event.ticketPrices && event.ticketPrices.length > 0 ? (
+                            {event.ticketOptions && event.ticketOptions.length > 0 ? (
                                 <div className="space-y-3">
-                                    {event.ticketPrices
-                                        .sort((a, b) => a.price - b.price)
+                                    {event.ticketOptions
+                                        .filter(opt => opt.prices.length > 0)
+                                        .sort((a, b) => (a.prices[0]?.price || 0) - (b.prices[0]?.price || 0))
                                         .map((ticket, index) => (
                                             <a
                                                 key={index}
-                                                href={ticket.affiliateUrl || ticket.url}
+                                                href={ticket.prices[0]?.affiliateUrl || ticket.prices[0]?.url || ticket.eventUrl}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                onClick={() => trackClick(event.id, ticket.sourceName)}
-                                                className={`flex items-center justify-between p-4 rounded-xl text-white transition-all transform hover:scale-102 ${getPlatformColor(ticket.sourceName)} ${index === 0 ? 'ring-2 ring-green-400 ring-offset-2' : ''}`}
+                                                onClick={() => trackClick(event.id, ticket.platform)}
+                                                className={`flex items-center justify-between p-4 rounded-xl text-white transition-all transform hover:scale-102 ${getPlatformColor(ticket.platform)} ${index === 0 ? 'ring-2 ring-green-400 ring-offset-2' : ''}`}
+                                                style={ticket.brandColor ? { backgroundColor: ticket.brandColor } : {}}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-2xl">{getPlatformLogo(ticket.sourceName)}</span>
+                                                    <span className="text-2xl">{getPlatformLogo(ticket.platform)}</span>
                                                     <div>
-                                                        <div className="font-semibold">{ticket.sourceName}</div>
+                                                        <div className="font-semibold">{ticket.platform}</div>
+                                                        {ticket.isVip && <span className="text-xs bg-yellow-400 text-black px-2 rounded mr-1">VIP</span>}
+                                                        {ticket.isDinnerIncluded && <span className="text-xs bg-orange-400 text-black px-2 rounded">Yemekli</span>}
                                                         {index === 0 && (
                                                             <div className="text-xs opacity-80">✨ En Ucuz</div>
                                                         )}
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className="text-2xl font-bold">{formatPrice(ticket.price)}</div>
+                                                    <div className="text-2xl font-bold">{formatPrice(ticket.prices[0]?.price || 0)}</div>
                                                     <div className="text-xs opacity-80">Satın Al →</div>
                                                 </div>
                                             </a>
@@ -269,7 +288,7 @@ export default function EventDetailPage() {
                             <div className="mt-6 pt-6 border-t border-gray-100">
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-500">En düşük fiyat:</span>
-                                    <span className="text-2xl font-bold text-green-600">{formatPrice(event.minPrice)}</span>
+                                    <span className="text-2xl font-bold text-green-600">{formatPrice(event.minPrice || 0)}</span>
                                 </div>
                             </div>
                         </div>
