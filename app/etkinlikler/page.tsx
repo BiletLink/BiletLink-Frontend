@@ -130,12 +130,15 @@ export default function EventsPage() {
             // Client-side price filtering
             if (activePriceFilter !== 'all') {
                 filteredData = filteredData.filter((event: Event) => {
+                    const price = event.minPrice ?? -1; // Treat null as -1 so it doesn't match positive ranges
+                    if (event.minPrice === null || event.minPrice === undefined) return false;
+
                     switch (activePriceFilter) {
-                        case 'free': return event.minPrice === 0;
-                        case '0-100': return event.minPrice > 0 && event.minPrice <= 100;
-                        case '100-300': return event.minPrice > 100 && event.minPrice <= 300;
-                        case '300-500': return event.minPrice > 300 && event.minPrice <= 500;
-                        case '500+': return event.minPrice > 500;
+                        case 'free': return price === 0;
+                        case '0-100': return price > 0 && price <= 100;
+                        case '100-300': return price > 100 && price <= 300;
+                        case '300-500': return price > 300 && price <= 500;
+                        case '500+': return price > 500;
                         default: return true;
                     }
                 });
@@ -143,9 +146,9 @@ export default function EventsPage() {
 
             // Sort
             if (sortBy === 'price-asc') {
-                filteredData.sort((a: Event, b: Event) => a.minPrice - b.minPrice);
+                filteredData.sort((a: Event, b: Event) => (a.minPrice ?? Infinity) - (b.minPrice ?? Infinity));
             } else if (sortBy === 'price-desc') {
-                filteredData.sort((a: Event, b: Event) => b.minPrice - a.minPrice);
+                filteredData.sort((a: Event, b: Event) => (b.minPrice ?? -Infinity) - (a.minPrice ?? -Infinity));
             } else if (sortBy === 'date') {
                 filteredData.sort((a: Event, b: Event) => new Date(a.date).getTime() - new Date(b.date).getTime());
             }
