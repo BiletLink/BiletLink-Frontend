@@ -85,6 +85,9 @@ export default function EventsPage() {
 
             const response = await fetch(`${apiUrl}/api/master-events?${params.toString()}`);
             const data = await response.json();
+            console.log('🎯 API URL:', `${apiUrl}/api/master-events?${params.toString()}`);
+            console.log('📦 API Response Data:', data);
+            console.log('📏 Data Length:', Array.isArray(data) ? data.length : 'Not Array');
 
             let filteredData = data;
 
