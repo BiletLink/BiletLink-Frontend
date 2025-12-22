@@ -32,6 +32,13 @@ export default function AdminDashboard() {
     const [scraperLoading, setScraperLoading] = useState<string | null>(null);
     const router = useRouter();
 
+    // Merge state
+    const [mergeSearchQuery, setMergeSearchQuery] = useState('');
+    const [mergeSearchResults, setMergeSearchResults] = useState<{ id: string, name: string, date: string, city: string | null, category: string | null }[]>([]);
+    const [selectedPrimary, setSelectedPrimary] = useState<{ id: string, name: string } | null>(null);
+    const [selectedSecondary, setSelectedSecondary] = useState<{ id: string, name: string } | null>(null);
+    const [mergeLoading, setMergeLoading] = useState(false);
+
     useEffect(() => {
         const token = localStorage.getItem('adminToken');
         if (!token) {
@@ -105,6 +112,53 @@ export default function AdminDashboard() {
         return new Date(dateStr).toLocaleString('tr-TR');
     };
 
+    // Merge functions
+    const searchEventsForMerge = async (query: string) => {
+        setMergeSearchQuery(query);
+        if (query.length < 2) {
+            setMergeSearchResults([]);
+            return;
+        }
+        try {
+            const token = localStorage.getItem('adminToken');
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/admin/events?page=1&pageSize=20&search=${encodeURIComponent(query)}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            setMergeSearchResults(data.items || []);
+        } catch {
+            setMergeSearchResults([]);
+        }
+    };
+
+    const mergeSelectedEvents = async () => {
+        if (!selectedPrimary || !selectedSecondary) return;
+        if (!confirm(`"${selectedSecondary.name}" etkinliğini "${selectedPrimary.name}" ile birleştirmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz.`)) return;
+
+        setMergeLoading(true);
+        try {
+            const token = localStorage.getItem('adminToken');
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/admin/events/merge`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ primaryEventId: selectedPrimary.id, secondaryEventId: selectedSecondary.id })
+            });
+            const data = await response.json();
+            alert(data.message);
+            setSelectedPrimary(null);
+            setSelectedSecondary(null);
+            setMergeSearchQuery('');
+            setMergeSearchResults([]);
+            fetchStats(token || '');
+        } catch {
+            alert('Birleştirme başarısız');
+        } finally {
+            setMergeLoading(false);
+        }
+    };
+
     if (loading) return (
         <div className="min-h-screen bg-slate-900 flex items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
@@ -134,6 +188,9 @@ export default function AdminDashboard() {
                                 </Link>
                                 <Link href="/admin/analytics" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700 transition">
                                     📊 Analytics
+                                </Link>
+                                <Link href="/admin/review" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700 transition">
+                                    👀 İnceleme
                                 </Link>
                             </div>
                         </div>
@@ -438,6 +495,82 @@ export default function AdminDashboard() {
                             🧹 Duplicate Temizle
                         </button>
                     </div>
+                </div>
+
+                {/* Event Merge Section */}
+                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8">
+                    <h3 className="text-lg font-semibold text-white mb-4">🔗 Etkinlik Birleştirme</h3>
+                    <p className="text-slate-400 text-sm mb-4">Aynı etkinliğin farklı platformlardan gelen kayıtlarını birleştirin.</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label className="block text-slate-400 text-sm mb-2">Etkinlik Ara</label>
+                            <input
+                                type="text"
+                                value={mergeSearchQuery}
+                                onChange={(e) => searchEventsForMerge(e.target.value)}
+                                placeholder="Etkinlik adı yazın..."
+                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400"
+                            />
+                        </div>
+                    </div>
+
+                    {mergeSearchResults.length > 0 && (
+                        <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
+                            {mergeSearchResults.map((event) => (
+                                <div
+                                    key={event.id}
+                                    className={`flex items-center justify-between p-3 rounded-lg transition ${selectedPrimary?.id === event.id ? 'bg-blue-600/20 border border-blue-500' :
+                                            selectedSecondary?.id === event.id ? 'bg-purple-600/20 border border-purple-500' :
+                                                'bg-slate-700/50'
+                                        }`}
+                                >
+                                    <div className="flex-1">
+                                        <span className="text-white font-medium">{event.name}</span>
+                                        <span className="text-slate-400 text-sm ml-2">{event.city} • {event.category}</span>
+                                        <span className="text-slate-500 text-xs ml-2">{new Date(event.date).toLocaleDateString('tr-TR')}</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => selectedSecondary?.id !== event.id && setSelectedPrimary({ id: event.id, name: event.name })}
+                                            disabled={selectedSecondary?.id === event.id}
+                                            className={`px-2 py-1 text-xs rounded transition ${selectedPrimary?.id === event.id ? 'bg-blue-600 text-white' : 'bg-slate-600 text-slate-300'
+                                                } ${selectedSecondary?.id === event.id ? 'opacity-50' : ''}`}
+                                        >Ana</button>
+                                        <button
+                                            onClick={() => selectedPrimary?.id !== event.id && setSelectedSecondary({ id: event.id, name: event.name })}
+                                            disabled={selectedPrimary?.id === event.id}
+                                            className={`px-2 py-1 text-xs rounded transition ${selectedSecondary?.id === event.id ? 'bg-purple-600 text-white' : 'bg-slate-600 text-slate-300'
+                                                } ${selectedPrimary?.id === event.id ? 'opacity-50' : ''}`}
+                                        >İkincil</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {selectedPrimary && selectedSecondary && (
+                        <>
+                            <div className="p-4 bg-slate-700/50 rounded-lg mb-4">
+                                <p className="text-white text-sm mb-2">📌 <strong>Ana Etkinlik:</strong> {selectedPrimary.name}</p>
+                                <p className="text-slate-400 text-sm">🔄 <strong>Birleştirilecek:</strong> {selectedSecondary.name}</p>
+                                <p className="text-yellow-400 text-xs mt-2">⚠️ İkincil etkinliğin kaynakları ana etkinliğe taşınacak ve ikincil silinecek.</p>
+                            </div>
+                            <button
+                                onClick={mergeSelectedEvents}
+                                disabled={mergeLoading}
+                                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 transition font-semibold"
+                            >
+                                {mergeLoading ? '⏳ Birleştiriliyor...' : '🔗 Birleştir'}
+                            </button>
+                            <button
+                                onClick={() => { setSelectedPrimary(null); setSelectedSecondary(null); }}
+                                className="ml-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-500 transition"
+                            >
+                                Temizle
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 {/* Quick Links */}
