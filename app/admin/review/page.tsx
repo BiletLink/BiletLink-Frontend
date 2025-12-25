@@ -2,6 +2,19 @@
 
 import { useEffect, useState } from 'react';
 
+interface SessionReview {
+    id: string;
+    sessionDate: string;
+    venueName?: string;
+    venueCity?: string;
+    minPrice?: number;
+    isAvailable: boolean;
+    performanceUrl?: string;
+    suggestedMasterEventId?: string;
+    suggestedMasterEventTitle?: string;
+    matchScore?: number;
+}
+
 interface ReviewItem {
     id: string;
     eventSourceId: string;
@@ -19,6 +32,8 @@ interface ReviewItem {
     matchScore: number;
     status: string;
     createdAt: string;
+    sessions: SessionReview[];
+    bestSessionIndex?: number;
 }
 
 export default function ReviewPage() {
@@ -28,6 +43,7 @@ export default function ReviewPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
     const pageSize = 20;
 
     useEffect(() => {
@@ -61,7 +77,6 @@ export default function ReviewPage() {
                 credentials: 'include'
             });
             if (res.ok) {
-                // Remove the item from the list immediately for visual feedback
                 setItems(prev => prev.filter(item => item.id !== id));
                 setTotal(prev => prev - 1);
             } else {
@@ -73,6 +88,23 @@ export default function ReviewPage() {
         } finally {
             setActionLoading(null);
         }
+    };
+
+    const toggleExpand = (id: string) => {
+        setExpandedItems(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(id)) {
+                newSet.delete(id);
+            } else {
+                newSet.add(id);
+            }
+            return newSet;
+        });
+    };
+
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return `${date.toLocaleDateString('tr-TR')} ${date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
     };
 
     return (
@@ -98,6 +130,7 @@ export default function ReviewPage() {
                     <div className="grid gap-4">
                         {items.map((item) => (
                             <div key={item.id} className={`border p-4 rounded-lg bg-white shadow-sm transition-opacity ${actionLoading === item.id ? 'opacity-50' : ''}`}>
+                                {/* Header */}
                                 <div className="flex items-center gap-2 mb-3">
                                     <span className="inline-block px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
                                         {item.sourcePlatform}
@@ -105,8 +138,14 @@ export default function ReviewPage() {
                                     <span className="text-sm text-gray-500">
                                         Eşleşme Skoru: %{Math.round(item.matchScore)}
                                     </span>
+                                    {item.sessions && item.sessions.length > 0 && (
+                                        <span className="inline-block px-2 py-1 text-xs rounded bg-purple-100 text-purple-800">
+                                            {item.sessions.length} Seans
+                                        </span>
+                                    )}
                                 </div>
 
+                                {/* Main comparison grid */}
                                 <div className="grid grid-cols-2 gap-4 mb-4">
                                     {/* Kaynak Event */}
                                     <div className="p-3 bg-blue-50 rounded-lg">
@@ -119,9 +158,7 @@ export default function ReviewPage() {
                                             <div className="text-sm text-gray-600">🏙️ {item.sourceCity}</div>
                                         )}
                                         {item.sourceDate && (
-                                            <div className="text-sm text-gray-600">
-                                                📅 {new Date(item.sourceDate).toLocaleDateString('tr-TR')} {new Date(item.sourceDate).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                            </div>
+                                            <div className="text-sm text-gray-600">📅 {formatDate(item.sourceDate)}</div>
                                         )}
                                     </div>
 
@@ -138,9 +175,7 @@ export default function ReviewPage() {
                                                     <div className="text-sm text-gray-600">🏙️ {item.suggestedMasterEventCity}</div>
                                                 )}
                                                 {item.suggestedMasterEventDate && (
-                                                    <div className="text-sm text-gray-600">
-                                                        📅 {new Date(item.suggestedMasterEventDate).toLocaleDateString('tr-TR')} {new Date(item.suggestedMasterEventDate).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                                    </div>
+                                                    <div className="text-sm text-gray-600">📅 {formatDate(item.suggestedMasterEventDate)}</div>
                                                 )}
                                             </>
                                         ) : (
@@ -149,6 +184,66 @@ export default function ReviewPage() {
                                     </div>
                                 </div>
 
+                                {/* Sessions Section */}
+                                {item.sessions && item.sessions.length > 0 && (
+                                    <div className="mb-4">
+                                        <button
+                                            onClick={() => toggleExpand(item.id)}
+                                            className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-800"
+                                        >
+                                            <span>{expandedItems.has(item.id) ? '▼' : '▶'}</span>
+                                            <span>Seansları Göster ({item.sessions.length})</span>
+                                        </button>
+
+                                        {expandedItems.has(item.id) && (
+                                            <div className="mt-3 space-y-2">
+                                                {item.sessions.map((session, index) => (
+                                                    <div
+                                                        key={session.id}
+                                                        className={`p-3 rounded-lg border ${index === item.bestSessionIndex ? 'bg-yellow-50 border-yellow-300' : 'bg-gray-50 border-gray-200'}`}
+                                                    >
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            {index === item.bestSessionIndex && (
+                                                                <span className="text-xs px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded">⭐ En İyi Eşleşme</span>
+                                                            )}
+                                                            <span className={`text-xs px-2 py-0.5 rounded ${session.isAvailable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                                {session.isAvailable ? 'Satışta' : 'Tükendi'}
+                                                            </span>
+                                                            {session.matchScore && (
+                                                                <span className="text-xs text-gray-500">Skor: %{Math.round(session.matchScore)}</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                                            <div>
+                                                                <div className="font-medium text-gray-800">📅 {formatDate(session.sessionDate)}</div>
+                                                                {session.venueName && <div className="text-gray-600">📍 {session.venueName}</div>}
+                                                                {session.venueCity && <div className="text-gray-600">🏙️ {session.venueCity}</div>}
+                                                                {session.minPrice && <div className="text-gray-600">💰 {session.minPrice} TL</div>}
+                                                            </div>
+                                                            <div>
+                                                                {session.suggestedMasterEventTitle ? (
+                                                                    <div className="text-green-700">
+                                                                        → {session.suggestedMasterEventTitle}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="text-gray-400 italic">Eşleşme yok</div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        {session.performanceUrl && (
+                                                            <a href={session.performanceUrl} target="_blank" rel="noopener noreferrer"
+                                                                className="text-xs text-blue-600 hover:underline mt-2 inline-block">
+                                                                Seans sayfasına git →
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Footer with actions */}
                                 <div className="flex justify-between items-center border-t pt-3">
                                     {item.sourceUrl ? (
                                         <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer"
