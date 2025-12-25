@@ -5,6 +5,15 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 
+interface Session {
+    id: string;
+    sessionDate: string;
+    venueName?: string;
+    minPrice?: number;
+    performanceUrl?: string;
+    isAvailable: boolean;
+}
+
 interface TicketOption {
     platform: string;
     platformTitle: string;
@@ -20,6 +29,7 @@ interface TicketOption {
         url?: string;
         affiliateUrl?: string;
     }[];
+    sessions: Session[];
 }
 
 interface EventDetail {
@@ -50,6 +60,17 @@ interface EventDetail {
     };
 }
 
+// Group sessions by date for comparison
+interface GroupedSession {
+    sessionDate: string;
+    platforms: {
+        platform: string;
+        price?: number;
+        url?: string;
+        performanceUrl?: string;
+    }[];
+}
+
 export default function EventDetailPage() {
     const params = useParams();
     const [event, setEvent] = useState<EventDetail | null>(null);
@@ -59,7 +80,6 @@ export default function EventDetailPage() {
     useEffect(() => {
         if (params.id) {
             fetchEventDetail(params.id as string);
-            // Track page view
             trackView(params.id as string);
         }
     }, [params.id]);
@@ -68,18 +88,14 @@ export default function EventDetailPage() {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
             await fetch(`${apiUrl}/api/analytics/track/view/${id}`, { method: 'POST' });
-        } catch (e) {
-            // Silently fail - analytics shouldn't break the page
-        }
+        } catch (e) { }
     };
 
     const trackClick = async (id: string, source: string) => {
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
             await fetch(`${apiUrl}/api/analytics/track/click/${id}?source=${source}`, { method: 'POST' });
-        } catch (e) {
-            // Silently fail
-        }
+        } catch (e) { }
     };
 
     const fetchEventDetail = async (id: string) => {
@@ -108,6 +124,15 @@ export default function EventDetailPage() {
         });
     };
 
+    const formatSessionDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return {
+            day: date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
+            weekday: date.toLocaleDateString('tr-TR', { weekday: 'short' }),
+            time: date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+        };
+    };
+
     const formatPrice = (price: number) => {
         return price > 0 ? `${price.toFixed(0)}₺` : 'Ücretsiz';
     };
@@ -120,13 +145,51 @@ export default function EventDetailPage() {
         return colors[platform] || 'bg-blue-500 hover:bg-blue-600';
     };
 
-    const getPlatformLogo = (platform: string) => {
-        switch (platform) {
-            case 'Biletix': return '🎫';
-            case 'Bubilet': return '🎭';
-            default: return '🎟️';
-        }
+    const getPlatformBorder = (platform: string) => {
+        const colors: Record<string, string> = {
+            'Biletix': 'border-orange-500',
+            'Bubilet': 'border-purple-500',
+        };
+        return colors[platform] || 'border-blue-500';
     };
+
+    // Group sessions by date for platform comparison
+    const getGroupedSessions = (): GroupedSession[] => {
+        if (!event?.ticketOptions) return [];
+
+        const sessionMap = new Map<string, GroupedSession>();
+
+        event.ticketOptions.forEach(option => {
+            option.sessions.forEach(session => {
+                const key = session.sessionDate;
+                if (!sessionMap.has(key)) {
+                    sessionMap.set(key, {
+                        sessionDate: session.sessionDate,
+                        platforms: []
+                    });
+                }
+
+                const group = sessionMap.get(key)!;
+                const price = session.minPrice || option.prices[0]?.price;
+                const url = session.performanceUrl || option.prices[0]?.affiliateUrl || option.prices[0]?.url || option.eventUrl;
+
+                group.platforms.push({
+                    platform: option.platform,
+                    price: price,
+                    url: url,
+                    performanceUrl: session.performanceUrl
+                });
+            });
+        });
+
+        // Sort by date
+        return Array.from(sessionMap.values()).sort((a, b) =>
+            new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
+        );
+    };
+
+    const groupedSessions = event ? getGroupedSessions() : [];
+    const hasMultipleSessions = groupedSessions.length > 1;
 
     if (loading) {
         return (
@@ -191,6 +254,69 @@ export default function EventDetailPage() {
 
                     {/* Left Column - Details */}
                     <div className="lg:col-span-2 space-y-6">
+
+                        {/* Session Cards - NEW */}
+                        {hasMultipleSessions && (
+                            <div className="bg-white rounded-2xl p-6 shadow-sm">
+                                <h2 className="text-xl font-bold text-gray-900 mb-4">📅 Seanslar</h2>
+                                <div className="space-y-3">
+                                    {groupedSessions.map((group, idx) => {
+                                        const dateInfo = formatSessionDate(group.sessionDate);
+                                        const cheapest = group.platforms.reduce((min, p) =>
+                                            (p.price && (!min.price || p.price < min.price)) ? p : min
+                                            , group.platforms[0]);
+
+                                        return (
+                                            <div key={idx} className="border rounded-xl p-4 hover:shadow-md transition-shadow">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="text-center min-w-[60px]">
+                                                            <div className="text-lg font-bold text-gray-900">{dateInfo.day}</div>
+                                                            <div className="text-sm text-gray-500">{dateInfo.weekday}</div>
+                                                            <div className="text-sm font-medium text-blue-600">{dateInfo.time}</div>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            {group.platforms.map((p, pIdx) => {
+                                                                const isCheapest = p === cheapest && group.platforms.length > 1;
+                                                                return (
+                                                                    <a
+                                                                        key={pIdx}
+                                                                        href={p.url}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        onClick={() => trackClick(event.id, p.platform)}
+                                                                        className={`relative px-3 py-2 rounded-lg text-white text-sm font-medium ${getPlatformColor(p.platform)} ${isCheapest ? 'ring-2 ring-green-400 ring-offset-1' : ''}`}
+                                                                    >
+                                                                        {isCheapest && (
+                                                                            <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-1.5 rounded-full">
+                                                                                ✓
+                                                                            </span>
+                                                                        )}
+                                                                        {p.platform}: {p.price ? formatPrice(p.price) : '-'}
+                                                                    </a>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                    {cheapest.url && (
+                                                        <a
+                                                            href={cheapest.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={() => trackClick(event.id, cheapest.platform)}
+                                                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium text-sm"
+                                                        >
+                                                            En Ucuz →
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Description */}
                         <div className="bg-white rounded-2xl p-6 shadow-sm">
                             <h2 className="text-xl font-bold text-gray-900 mb-4">Etkinlik Hakkında</h2>
@@ -247,35 +373,48 @@ export default function EventDetailPage() {
                             {event.ticketOptions && event.ticketOptions.length > 0 ? (
                                 <div className="space-y-3">
                                     {event.ticketOptions
-                                        .filter(opt => opt.prices.length > 0)
-                                        .sort((a, b) => (a.prices[0]?.price || 0) - (b.prices[0]?.price || 0))
-                                        .map((ticket, index) => (
-                                            <a
-                                                key={index}
-                                                href={ticket.prices[0]?.affiliateUrl || ticket.prices[0]?.url || ticket.eventUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={() => trackClick(event.id, ticket.platform)}
-                                                className={`flex items-center justify-between p-4 rounded-xl text-white transition-all transform hover:scale-102 ${getPlatformColor(ticket.platform)} ${index === 0 ? 'ring-2 ring-green-400 ring-offset-2' : ''}`}
-                                                style={ticket.brandColor ? { backgroundColor: ticket.brandColor } : {}}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-2xl">{getPlatformLogo(ticket.platform)}</span>
-                                                    <div>
-                                                        <div className="font-semibold">{ticket.platform}</div>
-                                                        {ticket.isVip && <span className="text-xs bg-yellow-400 text-black px-2 rounded mr-1">VIP</span>}
-                                                        {ticket.isDinnerIncluded && <span className="text-xs bg-orange-400 text-black px-2 rounded">Yemekli</span>}
-                                                        {index === 0 && (
-                                                            <div className="text-xs opacity-80">✨ En Ucuz</div>
-                                                        )}
+                                        .filter(opt => opt.prices.length > 0 || opt.sessions.length > 0)
+                                        .sort((a, b) => {
+                                            const aPrice = a.sessions[0]?.minPrice || a.prices[0]?.price || 0;
+                                            const bPrice = b.sessions[0]?.minPrice || b.prices[0]?.price || 0;
+                                            return aPrice - bPrice;
+                                        })
+                                        .map((ticket, index) => {
+                                            const price = ticket.sessions[0]?.minPrice || ticket.prices[0]?.price || 0;
+                                            const url = ticket.sessions[0]?.performanceUrl || ticket.prices[0]?.affiliateUrl || ticket.prices[0]?.url || ticket.eventUrl;
+                                            const isCheapest = index === 0;
+
+                                            return (
+                                                <a
+                                                    key={index}
+                                                    href={url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    onClick={() => trackClick(event.id, ticket.platform)}
+                                                    className={`flex items-center justify-between p-4 rounded-xl text-white transition-all transform hover:scale-102 ${getPlatformColor(ticket.platform)} ${isCheapest ? 'ring-2 ring-green-400 ring-offset-2' : ''}`}
+                                                    style={ticket.brandColor ? { backgroundColor: ticket.brandColor } : {}}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-2xl">{ticket.platform === 'Biletix' ? '🎫' : '🎭'}</span>
+                                                        <div>
+                                                            <div className="font-semibold">{ticket.platform}</div>
+                                                            {ticket.isVip && <span className="text-xs bg-yellow-400 text-black px-2 rounded mr-1">VIP</span>}
+                                                            {ticket.isDinnerIncluded && <span className="text-xs bg-orange-400 text-black px-2 rounded">Yemekli</span>}
+                                                            {isCheapest && (
+                                                                <div className="text-xs opacity-80">✨ En Ucuz</div>
+                                                            )}
+                                                            {ticket.sessions.length > 0 && (
+                                                                <div className="text-xs opacity-80">{ticket.sessions.length} seans</div>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-2xl font-bold">{formatPrice(ticket.prices[0]?.price || 0)}</div>
-                                                    <div className="text-xs opacity-80">Satın Al →</div>
-                                                </div>
-                                            </a>
-                                        ))}
+                                                    <div className="text-right">
+                                                        <div className="text-2xl font-bold">{formatPrice(price)}</div>
+                                                        <div className="text-xs opacity-80">Satın Al →</div>
+                                                    </div>
+                                                </a>
+                                            );
+                                        })}
                                 </div>
                             ) : (
                                 <div className="text-center py-8 text-gray-500">
