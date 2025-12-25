@@ -23,12 +23,7 @@ interface TicketOption {
     isVip: boolean;
     isDinnerIncluded: boolean;
     isAvailable: boolean;
-    prices: {
-        price: number;
-        currency: string;
-        url?: string;
-        affiliateUrl?: string;
-    }[];
+    prices: { price: number; currency: string; url?: string; affiliateUrl?: string; }[];
     sessions: Session[];
 }
 
@@ -43,32 +38,14 @@ interface EventDetail {
     minPrice?: number | null;
     viewCount?: number;
     ticketOptions: TicketOption[];
-    artist?: {
-        id: string;
-        name: string;
-        slug?: string;
-        imageUrl?: string;
-    };
-    venue?: {
-        id: string;
-        name: string;
-        slug?: string;
-        city: string;
-        address?: string;
-        latitude?: number;
-        longitude?: number;
-    };
+    artist?: { id: string; name: string; slug?: string; imageUrl?: string; };
+    venue?: { id: string; name: string; slug?: string; city: string; address?: string; };
 }
 
-// Group sessions by date for comparison
 interface GroupedSession {
     sessionDate: string;
-    platforms: {
-        platform: string;
-        price?: number;
-        url?: string;
-        performanceUrl?: string;
-    }[];
+    venueName?: string;
+    platforms: { platform: string; price?: number; url?: string; }[];
 }
 
 export default function EventDetailPage() {
@@ -115,81 +92,74 @@ export default function EventDetailPage() {
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('tr-TR', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            weekday: 'long',
-            hour: '2-digit',
-            minute: '2-digit'
+            day: 'numeric', month: 'long', year: 'numeric', weekday: 'long'
         });
+    };
+
+    const formatTime = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
     };
 
     const formatSessionDate = (dateString: string) => {
         const date = new Date(dateString);
         return {
-            day: date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
-            weekday: date.toLocaleDateString('tr-TR', { weekday: 'short' }),
+            date: date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', weekday: 'short' }),
             time: date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
         };
     };
 
-    const formatPrice = (price: number) => {
-        return price > 0 ? `${price.toFixed(0)}₺` : 'Ücretsiz';
-    };
+    const formatPrice = (price: number) => price > 0 ? `${price.toFixed(0)}₺` : 'Ücretsiz';
 
-    const getPlatformColor = (platform: string) => {
-        const colors: Record<string, string> = {
-            'Biletix': 'bg-orange-500 hover:bg-orange-600',
-            'Bubilet': 'bg-purple-500 hover:bg-purple-600',
+    const getPlatformStyle = (platform: string) => {
+        const styles: Record<string, { bg: string; border: string; text: string }> = {
+            'Biletix': { bg: 'bg-orange-50', border: 'border-orange-400', text: 'text-orange-600' },
+            'Bubilet': { bg: 'bg-purple-50', border: 'border-purple-400', text: 'text-purple-600' },
         };
-        return colors[platform] || 'bg-blue-500 hover:bg-blue-600';
+        return styles[platform] || { bg: 'bg-gray-50', border: 'border-gray-400', text: 'text-gray-600' };
     };
 
-    const getPlatformBorder = (platform: string) => {
-        const colors: Record<string, string> = {
-            'Biletix': 'border-orange-500',
-            'Bubilet': 'border-purple-500',
-        };
-        return colors[platform] || 'border-blue-500';
-    };
-
-    // Group sessions by date for platform comparison
+    // Group sessions by date for comparison
     const getGroupedSessions = (): GroupedSession[] => {
         if (!event?.ticketOptions) return [];
-
         const sessionMap = new Map<string, GroupedSession>();
 
         event.ticketOptions.forEach(option => {
-            option.sessions.forEach(session => {
-                const key = session.sessionDate;
-                if (!sessionMap.has(key)) {
-                    sessionMap.set(key, {
-                        sessionDate: session.sessionDate,
-                        platforms: []
+            // If has sessions
+            if (option.sessions.length > 0) {
+                option.sessions.forEach(session => {
+                    const key = session.sessionDate;
+                    if (!sessionMap.has(key)) {
+                        sessionMap.set(key, { sessionDate: session.sessionDate, venueName: session.venueName, platforms: [] });
+                    }
+                    const group = sessionMap.get(key)!;
+                    group.platforms.push({
+                        platform: option.platform,
+                        price: session.minPrice || option.prices[0]?.price,
+                        url: session.performanceUrl || option.prices[0]?.affiliateUrl || option.prices[0]?.url || option.eventUrl
                     });
-                }
-
-                const group = sessionMap.get(key)!;
-                const price = session.minPrice || option.prices[0]?.price;
-                const url = session.performanceUrl || option.prices[0]?.affiliateUrl || option.prices[0]?.url || option.eventUrl;
-
-                group.platforms.push({
-                    platform: option.platform,
-                    price: price,
-                    url: url,
-                    performanceUrl: session.performanceUrl
                 });
-            });
+            } else if (option.prices.length > 0) {
+                // Fallback: use event date if no sessions
+                const key = event.date;
+                if (!sessionMap.has(key)) {
+                    sessionMap.set(key, { sessionDate: event.date, platforms: [] });
+                }
+                sessionMap.get(key)!.platforms.push({
+                    platform: option.platform,
+                    price: option.prices[0]?.price,
+                    url: option.prices[0]?.affiliateUrl || option.prices[0]?.url || option.eventUrl
+                });
+            }
         });
 
-        // Sort by date
         return Array.from(sessionMap.values()).sort((a, b) =>
             new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
         );
     };
 
     const groupedSessions = event ? getGroupedSessions() : [];
-    const hasMultipleSessions = groupedSessions.length > 1;
+    const cheapestPrice = event?.minPrice || (groupedSessions[0]?.platforms[0]?.price);
 
     if (loading) {
         return (
@@ -209,237 +179,234 @@ export default function EventDetailPage() {
                 <div className="max-w-4xl mx-auto px-4 py-20 text-center">
                     <div className="text-6xl mb-4">😔</div>
                     <h1 className="text-2xl font-bold text-gray-800 mb-4">{error}</h1>
-                    <Link href="/" className="text-blue-600 hover:underline">
-                        ← Ana Sayfaya Dön
-                    </Link>
+                    <Link href="/" className="text-blue-600 hover:underline">← Ana Sayfaya Dön</Link>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-100">
             <Header />
 
-            {/* Hero Image */}
-            <div className="relative h-80 md:h-96 bg-gradient-to-br from-blue-600 to-purple-700">
+            {/* Hero Section - Event Image & Basic Info */}
+            <div className="relative h-72 md:h-80 bg-gradient-to-br from-blue-600 to-purple-700">
                 {event.imageUrl && (
-                    <img
-                        src={event.imageUrl}
-                        alt={event.name}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover opacity-40"
-                    />
+                    <img src={event.imageUrl} alt={event.name} referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover opacity-30" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
-                    <div className="max-w-6xl mx-auto">
-                        <span className="inline-block px-4 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium mb-4">
-                            {event.category}
-                        </span>
-                        <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
-                            {event.name}
-                        </h1>
-                        <p className="text-xl text-white/80">
-                            📅 {formatDate(event.date)}
-                        </p>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+                    <div className="max-w-6xl mx-auto flex items-end gap-6">
+                        {/* Event Poster */}
+                        <div className="hidden md:block w-40 h-56 rounded-lg overflow-hidden shadow-xl border-4 border-white bg-white flex-shrink-0">
+                            {event.imageUrl ? (
+                                <img src={event.imageUrl} alt={event.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full bg-gray-200 flex items-center justify-center text-4xl">🎭</div>
+                            )}
+                        </div>
+                        <div className="flex-1">
+                            <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur rounded-full text-white text-sm mb-2">
+                                {event.category}
+                            </span>
+                            <h1 className="text-2xl md:text-4xl font-bold text-white mb-1">{event.name}</h1>
+                            <p className="text-white/80">📅 {formatDate(event.date)} • {formatTime(event.date)}</p>
+                            {event.venue && (
+                                <p className="text-white/70 text-sm mt-1">📍 {event.venue.name}, {event.venue.city}</p>
+                            )}
+                        </div>
+                        {/* Price Badge */}
+                        <div className="hidden md:block text-right">
+                            <div className="bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
+                                <div className="text-xs opacity-80">En ucuz</div>
+                                <div className="text-2xl font-bold">{formatPrice(cheapestPrice || 0)}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="max-w-6xl mx-auto px-4 py-10">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Content - 2 Column Layout */}
+            <div className="max-w-6xl mx-auto px-4 py-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                    {/* Left Column - Details */}
+                    {/* LEFT COLUMN - Tickets & Artist (2/3) */}
                     <div className="lg:col-span-2 space-y-6">
 
-                        {/* Session Cards - NEW */}
-                        {hasMultipleSessions && (
-                            <div className="bg-white rounded-2xl p-6 shadow-sm">
-                                <h2 className="text-xl font-bold text-gray-900 mb-4">📅 Seanslar</h2>
-                                <div className="space-y-3">
-                                    {groupedSessions.map((group, idx) => {
+                        {/* BILET FIYATLARI - Session Cards */}
+                        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                            <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3">
+                                <h2 className="text-lg font-bold text-white">🎟️ Bilet Fiyatları</h2>
+                            </div>
+                            <div className="p-4 space-y-3">
+                                {groupedSessions.length > 0 ? (
+                                    groupedSessions.map((group, idx) => {
                                         const dateInfo = formatSessionDate(group.sessionDate);
                                         const cheapest = group.platforms.reduce((min, p) =>
                                             (p.price && (!min.price || p.price < min.price)) ? p : min
                                             , group.platforms[0]);
 
                                         return (
-                                            <div key={idx} className="border rounded-xl p-4 hover:shadow-md transition-shadow">
-                                                <div className="flex items-center justify-between">
+                                            <div key={idx} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                    {/* Date & Venue */}
                                                     <div className="flex items-center gap-4">
-                                                        <div className="text-center min-w-[60px]">
-                                                            <div className="text-lg font-bold text-gray-900">{dateInfo.day}</div>
-                                                            <div className="text-sm text-gray-500">{dateInfo.weekday}</div>
-                                                            <div className="text-sm font-medium text-blue-600">{dateInfo.time}</div>
+                                                        <div className="text-center bg-blue-50 rounded-lg px-3 py-2 min-w-[80px]">
+                                                            <div className="text-sm font-bold text-blue-800">{dateInfo.date}</div>
+                                                            <div className="text-lg font-bold text-blue-600">{dateInfo.time}</div>
                                                         </div>
-                                                        <div className="flex gap-2">
-                                                            {group.platforms.map((p, pIdx) => {
-                                                                const isCheapest = p === cheapest && group.platforms.length > 1;
-                                                                return (
-                                                                    <a
-                                                                        key={pIdx}
-                                                                        href={p.url}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        onClick={() => trackClick(event.id, p.platform)}
-                                                                        className={`relative px-3 py-2 rounded-lg text-white text-sm font-medium ${getPlatformColor(p.platform)} ${isCheapest ? 'ring-2 ring-green-400 ring-offset-1' : ''}`}
-                                                                    >
-                                                                        {isCheapest && (
-                                                                            <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-1.5 rounded-full">
-                                                                                ✓
-                                                                            </span>
-                                                                        )}
-                                                                        {p.platform}: {p.price ? formatPrice(p.price) : '-'}
-                                                                    </a>
-                                                                );
-                                                            })}
+                                                        <div>
+                                                            <div className="font-medium text-gray-800">{group.venueName || event.venue?.name}</div>
+                                                            <div className="text-sm text-gray-500">{event.venue?.city}</div>
                                                         </div>
                                                     </div>
-                                                    {cheapest.url && (
-                                                        <a
-                                                            href={cheapest.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            onClick={() => trackClick(event.id, cheapest.platform)}
-                                                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium text-sm"
-                                                        >
-                                                            En Ucuz →
-                                                        </a>
-                                                    )}
+
+                                                    {/* Platform Prices */}
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        {group.platforms.map((p, pIdx) => {
+                                                            const style = getPlatformStyle(p.platform);
+                                                            const isCheapest = p === cheapest && group.platforms.length > 1;
+
+                                                            return (
+                                                                <a key={pIdx} href={p.url} target="_blank" rel="noopener noreferrer"
+                                                                    onClick={() => trackClick(event.id, p.platform)}
+                                                                    className={`relative flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all hover:shadow-md ${style.bg} ${style.border} ${isCheapest ? 'ring-2 ring-green-400' : ''}`}
+                                                                >
+                                                                    {isCheapest && (
+                                                                        <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold">✓</span>
+                                                                    )}
+                                                                    <span className={`font-medium ${style.text}`}>{p.platform}</span>
+                                                                    <span className="font-bold text-gray-800">{p.price ? formatPrice(p.price) : '-'}</span>
+                                                                </a>
+                                                            );
+                                                        })}
+
+                                                        {/* Buy Cheapest Button */}
+                                                        {cheapest.url && (
+                                                            <a href={cheapest.url} target="_blank" rel="noopener noreferrer"
+                                                                onClick={() => trackClick(event.id, cheapest.platform)}
+                                                                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+                                                            >
+                                                                Satın Al →
+                                                            </a>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
-                                    })}
-                                </div>
+                                    })
+                                ) : (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <div className="text-3xl mb-2">🎫</div>
+                                        <p>Bilet bilgisi bulunamadı</p>
+                                    </div>
+                                )}
                             </div>
-                        )}
-
-                        {/* Description */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm">
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">Etkinlik Hakkında</h2>
-                            <p className="text-gray-600 leading-relaxed">
-                                {event.description || 'Bu etkinlik için açıklama bulunmamaktadır.'}
-                            </p>
                         </div>
 
-                        {/* Venue Info */}
-                        {event.venue && (
-                            <div className="bg-white rounded-2xl p-6 shadow-sm">
-                                <h2 className="text-xl font-bold text-gray-900 mb-4">📍 Mekan</h2>
-                                <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-2xl">
-                                        🏛️
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900">{event.venue.name}</h3>
-                                        <p className="text-gray-500">{event.venue.city}</p>
-                                        {event.venue.address && (
-                                            <p className="text-gray-400 text-sm mt-1">{event.venue.address}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Artist Info */}
+                        {/* SANATÇI - Artist Info */}
                         {event.artist && (
-                            <div className="bg-white rounded-2xl p-6 shadow-sm">
-                                <h2 className="text-xl font-bold text-gray-900 mb-4">🎤 Sanatçı</h2>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
-                                        {event.artist.imageUrl ? (
-                                            <img src={event.artist.imageUrl} alt={event.artist.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span className="text-3xl">🎤</span>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900 text-lg">{event.artist.name}</h3>
+                            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                                <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-5 py-3">
+                                    <h2 className="text-lg font-bold text-white">🎤 Sanatçı</h2>
+                                </div>
+                                <div className="p-5">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                                            {event.artist.imageUrl ? (
+                                                <img src={event.artist.imageUrl} alt={event.artist.name} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-3xl">🎤</div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-gray-800">{event.artist.name}</h3>
+                                            <p className="text-gray-500 text-sm">Sanatçının diğer etkinlikleri için tıklayın</p>
+                                            <Link href={`/sanatci/${event.artist.slug || event.artist.id}`}
+                                                className="inline-block mt-2 text-purple-600 hover:text-purple-800 text-sm font-medium"
+                                            >
+                                                Tüm Etkinlikleri Gör →
+                                            </Link>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    {/* Right Column - Ticket Prices */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white rounded-2xl p-6 shadow-lg sticky top-6">
-                            <h2 className="text-xl font-bold text-gray-900 mb-2">🎟️ Bilet Fiyatları</h2>
-                            <p className="text-gray-500 text-sm mb-6">En iyi fiyatları karşılaştırın</p>
+                    {/* RIGHT COLUMN - Event Details & Venue (1/3) */}
+                    <div className="lg:col-span-1 space-y-6">
 
-                            {event.ticketOptions && event.ticketOptions.length > 0 ? (
-                                <div className="space-y-3">
-                                    {event.ticketOptions
-                                        .filter(opt => opt.prices.length > 0 || opt.sessions.length > 0)
-                                        .sort((a, b) => {
-                                            const aPrice = a.sessions[0]?.minPrice || a.prices[0]?.price || 0;
-                                            const bPrice = b.sessions[0]?.minPrice || b.prices[0]?.price || 0;
-                                            return aPrice - bPrice;
-                                        })
-                                        .map((ticket, index) => {
-                                            const price = ticket.sessions[0]?.minPrice || ticket.prices[0]?.price || 0;
-                                            const url = ticket.sessions[0]?.performanceUrl || ticket.prices[0]?.affiliateUrl || ticket.prices[0]?.url || ticket.eventUrl;
-                                            const isCheapest = index === 0;
-
-                                            return (
-                                                <a
-                                                    key={index}
-                                                    href={url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    onClick={() => trackClick(event.id, ticket.platform)}
-                                                    className={`flex items-center justify-between p-4 rounded-xl text-white transition-all transform hover:scale-102 ${getPlatformColor(ticket.platform)} ${isCheapest ? 'ring-2 ring-green-400 ring-offset-2' : ''}`}
-                                                    style={ticket.brandColor ? { backgroundColor: ticket.brandColor } : {}}
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-2xl">{ticket.platform === 'Biletix' ? '🎫' : '🎭'}</span>
-                                                        <div>
-                                                            <div className="font-semibold">{ticket.platform}</div>
-                                                            {ticket.isVip && <span className="text-xs bg-yellow-400 text-black px-2 rounded mr-1">VIP</span>}
-                                                            {ticket.isDinnerIncluded && <span className="text-xs bg-orange-400 text-black px-2 rounded">Yemekli</span>}
-                                                            {isCheapest && (
-                                                                <div className="text-xs opacity-80">✨ En Ucuz</div>
-                                                            )}
-                                                            {ticket.sessions.length > 0 && (
-                                                                <div className="text-xs opacity-80">{ticket.sessions.length} seans</div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="text-2xl font-bold">{formatPrice(price)}</div>
-                                                        <div className="text-xs opacity-80">Satın Al →</div>
-                                                    </div>
-                                                </a>
-                                            );
-                                        })}
+                        {/* ETKİNLİK DETAYLARI */}
+                        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                            <div className="bg-gray-100 px-5 py-3 border-b">
+                                <h2 className="text-lg font-bold text-gray-800">📋 Etkinlik Detayları</h2>
+                            </div>
+                            <div className="p-5 space-y-4">
+                                <div>
+                                    <div className="text-sm text-gray-500 mb-1">Tarih</div>
+                                    <div className="font-medium">{formatDate(event.date)}</div>
                                 </div>
-                            ) : (
-                                <div className="text-center py-8 text-gray-500">
-                                    <div className="text-4xl mb-2">😔</div>
-                                    <p>Bilet bilgisi bulunamadı</p>
+                                <div>
+                                    <div className="text-sm text-gray-500 mb-1">Saat</div>
+                                    <div className="font-medium">{formatTime(event.date)}</div>
                                 </div>
-                            )}
+                                <div>
+                                    <div className="text-sm text-gray-500 mb-1">Kategori</div>
+                                    <div className="font-medium">{event.category || '-'}</div>
+                                </div>
+                                {event.description && (
+                                    <div>
+                                        <div className="text-sm text-gray-500 mb-1">Açıklama</div>
+                                        <div className="text-sm text-gray-700">{event.description}</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
-                            {/* Min Price Summary */}
-                            <div className="mt-6 pt-6 border-t border-gray-100">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-500">En düşük fiyat:</span>
-                                    <span className="text-2xl font-bold text-green-600">{formatPrice(event.minPrice || 0)}</span>
+                        {/* MEKAN */}
+                        {event.venue && (
+                            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                                <div className="bg-gray-100 px-5 py-3 border-b">
+                                    <h2 className="text-lg font-bold text-gray-800">📍 Mekan</h2>
+                                </div>
+                                <div className="p-5">
+                                    <h3 className="font-bold text-gray-800 mb-1">{event.venue.name}</h3>
+                                    <p className="text-gray-500 text-sm mb-3">{event.venue.city}</p>
+                                    {event.venue.address && (
+                                        <p className="text-gray-600 text-sm mb-3">{event.venue.address}</p>
+                                    )}
+                                    <Link href={`/mekan/${event.venue.slug || event.venue.id}`}
+                                        className="inline-block text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                    >
+                                        Bu Mekandaki Diğer Etkinlikler →
+                                    </Link>
                                 </div>
                             </div>
+                        )}
+
+                        {/* Mobile Price CTA */}
+                        <div className="md:hidden bg-green-500 text-white rounded-xl p-4 text-center shadow-lg">
+                            <div className="text-sm opacity-80 mb-1">En ucuz bilet</div>
+                            <div className="text-3xl font-bold mb-2">{formatPrice(cheapestPrice || 0)}</div>
+                            {groupedSessions[0]?.platforms[0]?.url && (
+                                <a href={groupedSessions[0].platforms.reduce((min, p) =>
+                                    (p.price && (!min.price || p.price < min.price)) ? p : min
+                                    , groupedSessions[0].platforms[0]).url}
+                                    target="_blank" rel="noopener noreferrer"
+                                    className="block bg-white text-green-600 font-bold py-2 rounded-lg"
+                                >
+                                    Hemen Satın Al
+                                </a>
+                            )}
                         </div>
                     </div>
                 </div>
 
                 {/* Back Button */}
-                <div className="mt-10">
-                    <Link
-                        href="/"
-                        className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-                    >
+                <div className="mt-8">
+                    <Link href="/" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
