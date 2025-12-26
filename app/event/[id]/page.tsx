@@ -305,6 +305,37 @@ export default function EventDetailPage() {
                             </div>
                         </div>
 
+                        {/* ETKİNLİK DETAYLARI */}
+                        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                            <div className="bg-gray-100 px-5 py-3 border-b">
+                                <h2 className="text-lg font-bold text-gray-800">📋 Etkinlik Detayları</h2>
+                            </div>
+                            <div className="p-5 space-y-4">
+                                <div>
+                                    <div className="text-sm text-gray-500 mb-1">Tarih</div>
+                                    <div className="font-medium">{formatDate(event.date)}</div>
+                                </div>
+                                <div>
+                                    <div className="text-sm text-gray-500 mb-1">Saat</div>
+                                    <div className="font-medium">{formatTime(event.date)}</div>
+                                </div>
+                                <div>
+                                    <div className="text-sm text-gray-500 mb-1">Kategori</div>
+                                    <div className="font-medium">{event.category || '-'}</div>
+                                </div>
+                                {event.description && (
+                                    <div>
+                                        <div className="text-sm text-gray-500 mb-1">Açıklama</div>
+                                        <div className="text-sm text-gray-700">{event.description}</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* RIGHT COLUMN - Event Details & Venue (1/3) */}
+                    <div className="lg:col-span-1 space-y-6">
+
                         {/* SANATÇI - Artist Info */}
                         {event.artist && (
                             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -333,37 +364,6 @@ export default function EventDetailPage() {
                                 </div>
                             </div>
                         )}
-                    </div>
-
-                    {/* RIGHT COLUMN - Event Details & Venue (1/3) */}
-                    <div className="lg:col-span-1 space-y-6">
-
-                        {/* ETKİNLİK DETAYLARI */}
-                        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                            <div className="bg-gray-100 px-5 py-3 border-b">
-                                <h2 className="text-lg font-bold text-gray-800">📋 Etkinlik Detayları</h2>
-                            </div>
-                            <div className="p-5 space-y-4">
-                                <div>
-                                    <div className="text-sm text-gray-500 mb-1">Tarih</div>
-                                    <div className="font-medium">{formatDate(event.date)}</div>
-                                </div>
-                                <div>
-                                    <div className="text-sm text-gray-500 mb-1">Saat</div>
-                                    <div className="font-medium">{formatTime(event.date)}</div>
-                                </div>
-                                <div>
-                                    <div className="text-sm text-gray-500 mb-1">Kategori</div>
-                                    <div className="font-medium">{event.category || '-'}</div>
-                                </div>
-                                {event.description && (
-                                    <div>
-                                        <div className="text-sm text-gray-500 mb-1">Açıklama</div>
-                                        <div className="text-sm text-gray-700">{event.description}</div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
 
                         {/* MEKAN */}
                         {event.venue && (
