@@ -45,7 +45,7 @@ interface EventDetail {
 interface GroupedSession {
     sessionDate: string;
     venueName?: string;
-    platforms: { platform: string; price?: number; url?: string; }[];
+    platforms: { platform: string; title?: string; price?: number; url?: string; }[];
 }
 
 export default function EventDetailClient({ initialEvent }: { initialEvent?: EventDetail | null }) {
