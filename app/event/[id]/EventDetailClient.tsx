@@ -121,7 +121,7 @@ export default function EventDetailClient({ initialEvent }: { initialEvent?: Eve
         return styles[platform] || { bg: 'bg-gray-50', border: 'border-gray-400', text: 'text-gray-600' };
     };
 
-    // Group sessions by date for comparison
+    // Group sessions by date for comparison - deduplicates platforms keeping lowest price
     const getGroupedSessions = (): GroupedSession[] => {
         if (!event?.ticketOptions) return [];
         const sessionMap = new Map<string, GroupedSession>();
@@ -135,11 +135,20 @@ export default function EventDetailClient({ initialEvent }: { initialEvent?: Eve
                         sessionMap.set(key, { sessionDate: session.sessionDate, venueName: session.venueName, platforms: [] });
                     }
                     const group = sessionMap.get(key)!;
-                    group.platforms.push({
-                        platform: option.platform,
-                        price: session.minPrice || option.prices[0]?.price,
-                        url: session.performanceUrl || option.prices[0]?.affiliateUrl || option.prices[0]?.url || option.eventUrl
-                    });
+                    const price = session.minPrice || option.prices[0]?.price;
+                    const url = session.performanceUrl || option.prices[0]?.affiliateUrl || option.prices[0]?.url || option.eventUrl;
+
+                    // Check if platform already exists in this group
+                    const existingPlatform = group.platforms.find(p => p.platform === option.platform);
+                    if (existingPlatform) {
+                        // Keep the lower price
+                        if (price && (!existingPlatform.price || price < existingPlatform.price)) {
+                            existingPlatform.price = price;
+                            existingPlatform.url = url;
+                        }
+                    } else {
+                        group.platforms.push({ platform: option.platform, price, url });
+                    }
                 });
             } else if (option.prices.length > 0) {
                 // Fallback: use event date if no sessions
@@ -147,11 +156,20 @@ export default function EventDetailClient({ initialEvent }: { initialEvent?: Eve
                 if (!sessionMap.has(key)) {
                     sessionMap.set(key, { sessionDate: event.date, platforms: [] });
                 }
-                sessionMap.get(key)!.platforms.push({
-                    platform: option.platform,
-                    price: option.prices[0]?.price,
-                    url: option.prices[0]?.affiliateUrl || option.prices[0]?.url || option.eventUrl
-                });
+                const group = sessionMap.get(key)!;
+                const price = option.prices[0]?.price;
+                const url = option.prices[0]?.affiliateUrl || option.prices[0]?.url || option.eventUrl;
+
+                // Check if platform already exists
+                const existingPlatform = group.platforms.find(p => p.platform === option.platform);
+                if (existingPlatform) {
+                    if (price && (!existingPlatform.price || price < existingPlatform.price)) {
+                        existingPlatform.price = price;
+                        existingPlatform.url = url;
+                    }
+                } else {
+                    group.platforms.push({ platform: option.platform, price, url });
+                }
             }
         });
 
