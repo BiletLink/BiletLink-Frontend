@@ -121,56 +121,63 @@ export default function EventDetailClient({ initialEvent }: { initialEvent?: Eve
         return styles[platform] || { bg: 'bg-gray-50', border: 'border-gray-400', text: 'text-gray-600' };
     };
 
-    // Group sessions by date for comparison - deduplicates platforms keeping lowest price
+    // Group sessions by date - show each workshop/product separately (only merge if same platform AND same title)
     const getGroupedSessions = (): GroupedSession[] => {
         if (!event?.ticketOptions) return [];
         const sessionMap = new Map<string, GroupedSession>();
 
         event.ticketOptions.forEach(option => {
+            const title = option.platformTitle || option.platform;
+
             // If has sessions
             if (option.sessions.length > 0) {
                 option.sessions.forEach(session => {
-                    const key = session.sessionDate;
-                    if (!sessionMap.has(key)) {
-                        sessionMap.set(key, { sessionDate: session.sessionDate, venueName: session.venueName, platforms: [] });
+                    const dateKey = session.sessionDate;
+                    if (!sessionMap.has(dateKey)) {
+                        sessionMap.set(dateKey, { sessionDate: session.sessionDate, venueName: session.venueName, platforms: [] });
                     }
-                    const group = sessionMap.get(key)!;
+                    const group = sessionMap.get(dateKey)!;
                     const price = session.minPrice || option.prices[0]?.price;
                     const url = session.performanceUrl || option.prices[0]?.affiliateUrl || option.prices[0]?.url || option.eventUrl;
 
-                    // Check if platform already exists in this group
-                    const existingPlatform = group.platforms.find(p => p.platform === option.platform);
+                    // Only merge if BOTH platform AND title match (same product from same source)
+                    const existingPlatform = group.platforms.find(p => p.platform === option.platform && p.title === title);
                     if (existingPlatform) {
-                        // Keep the lower price
+                        // Keep the lower price for same product
                         if (price && (!existingPlatform.price || price < existingPlatform.price)) {
                             existingPlatform.price = price;
                             existingPlatform.url = url;
                         }
                     } else {
-                        group.platforms.push({ platform: option.platform, price, url });
+                        // Add as new entry (different workshop/product)
+                        group.platforms.push({ platform: option.platform, title, price, url });
                     }
                 });
             } else if (option.prices.length > 0) {
                 // Fallback: use event date if no sessions
-                const key = event.date;
-                if (!sessionMap.has(key)) {
-                    sessionMap.set(key, { sessionDate: event.date, platforms: [] });
+                const dateKey = event.date;
+                if (!sessionMap.has(dateKey)) {
+                    sessionMap.set(dateKey, { sessionDate: event.date, platforms: [] });
                 }
-                const group = sessionMap.get(key)!;
+                const group = sessionMap.get(dateKey)!;
                 const price = option.prices[0]?.price;
                 const url = option.prices[0]?.affiliateUrl || option.prices[0]?.url || option.eventUrl;
 
-                // Check if platform already exists
-                const existingPlatform = group.platforms.find(p => p.platform === option.platform);
+                const existingPlatform = group.platforms.find(p => p.platform === option.platform && p.title === title);
                 if (existingPlatform) {
                     if (price && (!existingPlatform.price || price < existingPlatform.price)) {
                         existingPlatform.price = price;
                         existingPlatform.url = url;
                     }
                 } else {
-                    group.platforms.push({ platform: option.platform, price, url });
+                    group.platforms.push({ platform: option.platform, title, price, url });
                 }
             }
+        });
+
+        // Sort platforms by price within each group
+        sessionMap.forEach(group => {
+            group.platforms.sort((a, b) => (a.price || 0) - (b.price || 0));
         });
 
         return Array.from(sessionMap.values()).sort((a, b) =>
