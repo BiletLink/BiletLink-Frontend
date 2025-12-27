@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import ScheduledJobsControl from './components/ScheduledJobsControl';
+import { Card, CardContent, CardHeader, StatCard, Badge, Button, PageHeader, Skeleton } from './components/ui';
 
 interface DashboardStats {
     totalEvents: number;
@@ -12,7 +12,6 @@ interface DashboardStats {
     activeEvents: number;
     expiredEvents: number;
     lastScrapedAt: string | null;
-    // Detaylı istatistikler
     categoryStats: Record<string, number>;
     platformStats: Record<string, number>;
     cityStats: Record<string, number>;
@@ -20,37 +19,28 @@ interface DashboardStats {
     eventsThisMonth: number;
     totalViews: number;
     totalClicks: number;
-    // Detaylı platform istatistikleri
     biletixOnlyEvents: number;
     bubiletOnlyEvents: number;
     sharedPlatformEvents: number;
 }
 
+interface LatestEvent {
+    id: string;
+    name: string;
+    date: string;
+    city: string;
+    venueName: string;
+    minPrice: number;
+    platforms: string[];
+    category: string;
+}
+
 export default function AdminDashboard() {
     const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [latestEvents, setLatestEvents] = useState<LatestEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const [scraperLoading, setScraperLoading] = useState<string | null>(null);
     const router = useRouter();
-
-    // Merge state
-    const [mergeSearchQuery, setMergeSearchQuery] = useState('');
-    const [mergeSearchResults, setMergeSearchResults] = useState<{ id: string, name: string, date: string, city: string | null, category: string | null }[]>([]);
-    const [selectedPrimary, setSelectedPrimary] = useState<{ id: string, name: string } | null>(null);
-    const [selectedSecondary, setSelectedSecondary] = useState<{ id: string, name: string } | null>(null);
-    const [mergeLoading, setMergeLoading] = useState(false);
-
-    interface LatestEvent {
-        id: string;
-        name: string;
-        date: string;
-        city: string;
-        venueName: string;
-        minPrice: number;
-        platforms: string[];
-    }
-
-    // Latest events state
-    const [latestEvents, setLatestEvents] = useState<LatestEvent[]>([]);
 
     useEffect(() => {
         const token = localStorage.getItem('adminToken');
@@ -58,328 +48,354 @@ export default function AdminDashboard() {
             router.push('/admin/login');
             return;
         }
-        fetchStats(token);
-        fetchLatestEvents(token);
+        fetchData(token);
     }, [router]);
 
-    const fetchLatestEvents = async (token: string) => {
+    const fetchData = async (token: string) => {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-            const response = await fetch(`${apiUrl}/api/admin/events?page=1&pageSize=5`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            setLatestEvents(data.items || []);
-        } catch (error) {
-            console.error('Failed to fetch latest events:', error);
-        }
-    };
+            const [statsRes, eventsRes] = await Promise.all([
+                fetch(`${apiUrl}/api/admin/stats`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch(`${apiUrl}/api/admin/events?page=1&pageSize=5`, { headers: { 'Authorization': `Bearer ${token}` } })
+            ]);
 
-    const fetchStats = async (token: string) => {
-        try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-            const response = await fetch(`${apiUrl}/api/admin/stats`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (response.status === 401) {
+            if (statsRes.status === 401) {
                 localStorage.removeItem('adminToken');
                 router.push('/admin/login');
                 return;
             }
 
-            const data = await response.json();
-            setStats(data);
+            setStats(await statsRes.json());
+            const eventsData = await eventsRes.json();
+            setLatestEvents(eventsData.items || []);
         } catch (error) {
-            console.error('Failed to fetch stats:', error);
+            console.error('Failed to fetch data:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const runScraper = async (platform: string, queryType: string = 'general', queryValue: string = '') => {
+    const runScraper = async (platform: string) => {
         setScraperLoading(platform);
         try {
             const token = localStorage.getItem('adminToken');
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
             const response = await fetch(`${apiUrl}/api/admin/scraper/run`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    scraper: platform,
-                    queryType,
-                    queryValue
-                })
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scraper: platform, queryType: 'general', queryValue: '' })
             });
-
             const data = await response.json();
-            if (data.workflowUrl) {
-                alert(`${data.message}\n\nGitHub Actions: ${data.workflowUrl}`);
-            } else {
-                alert(data.message);
-            }
-        } catch (error) {
+            alert(data.message);
+        } catch {
             alert('Scraper başlatılamadı');
         } finally {
             setScraperLoading(null);
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminUser');
-        router.push('/admin/login');
+    const formatDate = (dateStr: string) => {
+        return new Date(dateStr).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
     };
 
-    const formatDate = (dateStr: string | null) => {
-        if (!dateStr) return 'Hiç çalışmadı';
-        return new Date(dateStr).toLocaleString('tr-TR');
-    };
-
-    // Merge functions
-    const searchEventsForMerge = async (query: string) => {
-        setMergeSearchQuery(query);
-        if (query.length < 2) {
-            setMergeSearchResults([]);
-            return;
-        }
-        try {
-            const token = localStorage.getItem('adminToken');
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-            const response = await fetch(`${apiUrl}/api/admin/events?page=1&pageSize=20&search=${encodeURIComponent(query)}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-            setMergeSearchResults(data.items || []);
-        } catch {
-            setMergeSearchResults([]);
-        }
-    };
-
-    const mergeSelectedEvents = async () => {
-        if (!selectedPrimary || !selectedSecondary) return;
-        if (!confirm(`"${selectedSecondary.name}" etkinliğini "${selectedPrimary.name}" ile birleştirmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz.`)) return;
-
-        setMergeLoading(true);
-        try {
-            const token = localStorage.getItem('adminToken');
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-            const response = await fetch(`${apiUrl}/api/admin/events/merge`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ primaryEventId: selectedPrimary.id, secondaryEventId: selectedSecondary.id })
-            });
-            const data = await response.json();
-            alert(data.message);
-            setSelectedPrimary(null);
-            setSelectedSecondary(null);
-            setMergeSearchQuery('');
-            setMergeSearchResults([]);
-            fetchStats(token || '');
-        } catch {
-            alert('Birleştirme başarısız');
-        } finally {
-            setMergeLoading(false);
-        }
-    };
-
-    if (loading) return (
-        <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-        </div>
-    );
+    if (loading) {
+        return (
+            <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Skeleton className="h-80 rounded-2xl lg:col-span-2" />
+                    <Skeleton className="h-80 rounded-2xl" />
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-slate-900">
-            {/* Navbar */}
-            <nav className="bg-slate-800 border-b border-slate-700">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center gap-8">
-                            <h1 className="text-xl font-bold text-white">🎛️ BiletLink Admin</h1>
-                            <div className="flex gap-4">
-                                <Link href="/admin" className="text-white bg-slate-700 px-3 py-2 rounded-lg text-sm">
-                                    Dashboard
-                                </Link>
-                                <Link href="/admin/events" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700 transition">
-                                    🎫 Events
-                                </Link>
-                                <Link href="/admin/artists" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700 transition">
-                                    🎤 Artists
-                                </Link>
-                                <Link href="/admin/venues" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700 transition">
-                                    🏛️ Venues
-                                </Link>
-                                <Link href="/admin/analytics" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700 transition">
-                                    📊 Analytics
-                                </Link>
-                                <Link href="/admin/review" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700 transition">
-                                    👀 İnceleme
-                                </Link>
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            className="text-slate-300 hover:text-white text-sm"
-                        >
-                            Çıkış Yap
-                        </button>
+        <div className="space-y-6">
+            {/* Page Header */}
+            <PageHeader
+                title="Dashboard"
+                description="BiletLink yönetim paneline hoş geldiniz"
+                icon="📊"
+                actions={
+                    <div className="flex gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => fetchData(localStorage.getItem('adminToken') || '')}>
+                            🔄 Yenile
+                        </Button>
                     </div>
-                </div>
-            </nav>
+                }
+            />
 
-            {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <h2 className="text-2xl font-bold text-white mb-8">Dashboard</h2>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard title="Toplam Etkinlik" value={stats?.totalEvents || 0} icon="🎫" color="blue" />
+                <StatCard title="Aktif Etkinlik" value={stats?.activeEvents || 0} icon="✅" color="green" />
+                <StatCard title="Sanatçılar" value={stats?.totalArtists || 0} icon="🎤" color="purple" />
+                <StatCard title="Mekanlar" value={stats?.totalVenues || 0} icon="🏛️" color="orange" />
+            </div>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <StatCard
-                        title="Toplam Event"
-                        value={stats?.totalEvents || 0}
-                        icon="🎫"
-                        color="blue"
-                    />
-                    <StatCard
-                        title="Aktif Event"
-                        value={stats?.activeEvents || 0}
-                        icon="✅"
-                        color="green"
-                    />
-                    <StatCard
-                        title="Sanatçılar"
-                        value={stats?.totalArtists || 0}
-                        icon="🎤"
-                        color="purple"
-                    />
-                    <StatCard
-                        title="Mekanlar"
-                        value={stats?.totalVenues || 0}
-                        icon="🏛️"
-                        color="orange"
-                    />
-                </div>
-
-                {/* Detaylı İstatistikler Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    {/* Platform Dağılımı - Geliştirilmiş */}
-                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                        <h3 className="text-lg font-semibold text-white mb-2">🌐 Platform Dağılımı</h3>
-                        <p className="text-slate-400 text-sm mb-4">
-                            Toplam <span className="text-white font-semibold">{stats?.activeEvents?.toLocaleString('tr-TR') || 0}</span> aktif etkinlik
-                        </p>
+            {/* Main Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Platform Distribution */}
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                🌐 Platform Dağılımı
+                            </h3>
+                            <Badge variant="info">{stats?.activeEvents || 0} aktif</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
                         <div className="space-y-5">
-                            {/* Sadece Biletix */}
+                            {/* Biletix */}
                             <div>
-                                <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                        <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-                                        <span className="text-slate-300 text-sm">🎫 Sadece Biletix</span>
+                                        <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                                        <span className="text-slate-300 text-sm">Biletix</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-slate-400 text-xs">
-                                            %{stats?.activeEvents ? (((stats?.biletixOnlyEvents || 0) / stats.activeEvents) * 100).toFixed(1) : '0.0'}
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-slate-500 text-xs">
+                                            %{stats?.activeEvents ? (((stats?.biletixOnlyEvents || 0) / stats.activeEvents) * 100).toFixed(1) : '0'}
                                         </span>
-                                        <span className="text-white font-semibold">{stats?.biletixOnlyEvents?.toLocaleString('tr-TR') || 0}</span>
+                                        <span className="text-white font-semibold">{stats?.biletixOnlyEvents || 0}</span>
                                     </div>
                                 </div>
-                                <div className="w-full bg-slate-700 rounded-full h-2.5">
+                                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                                     <div
-                                        className="bg-gradient-to-r from-blue-500 to-blue-400 h-2.5 rounded-full transition-all duration-500"
+                                        className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all duration-500"
                                         style={{ width: `${stats?.activeEvents ? ((stats?.biletixOnlyEvents || 0) / stats.activeEvents) * 100 : 0}%` }}
                                     />
                                 </div>
                             </div>
-                            {/* Sadece Bubilet */}
+
+                            {/* Bubilet */}
                             <div>
-                                <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                        <span className="w-3 h-3 rounded-full bg-purple-500"></span>
-                                        <span className="text-slate-300 text-sm">🎟️ Sadece Bubilet</span>
+                                        <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                                        <span className="text-slate-300 text-sm">Bubilet</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-slate-400 text-xs">
-                                            %{stats?.activeEvents ? (((stats?.bubiletOnlyEvents || 0) / stats.activeEvents) * 100).toFixed(1) : '0.0'}
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-slate-500 text-xs">
+                                            %{stats?.activeEvents ? (((stats?.bubiletOnlyEvents || 0) / stats.activeEvents) * 100).toFixed(1) : '0'}
                                         </span>
-                                        <span className="text-white font-semibold">{stats?.bubiletOnlyEvents?.toLocaleString('tr-TR') || 0}</span>
+                                        <span className="text-white font-semibold">{stats?.bubiletOnlyEvents || 0}</span>
                                     </div>
                                 </div>
-                                <div className="w-full bg-slate-700 rounded-full h-2.5">
+                                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                                     <div
-                                        className="bg-gradient-to-r from-purple-500 to-purple-400 h-2.5 rounded-full transition-all duration-500"
+                                        className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full transition-all duration-500"
                                         style={{ width: `${stats?.activeEvents ? ((stats?.bubiletOnlyEvents || 0) / stats.activeEvents) * 100 : 0}%` }}
                                     />
                                 </div>
                             </div>
+
                             {/* Her İki Platform */}
                             <div>
-                                <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
-                                        <span className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></span>
-                                        <span className="text-slate-300 text-sm">✨ Her İki Platform</span>
+                                        <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                                        <span className="text-slate-300 text-sm">Her İki Platform</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-slate-400 text-xs">
-                                            %{stats?.activeEvents ? (((stats?.sharedPlatformEvents || 0) / stats.activeEvents) * 100).toFixed(1) : '0.0'}
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-slate-500 text-xs">
+                                            %{stats?.activeEvents ? (((stats?.sharedPlatformEvents || 0) / stats.activeEvents) * 100).toFixed(1) : '0'}
                                         </span>
-                                        <span className="text-white font-semibold">{stats?.sharedPlatformEvents?.toLocaleString('tr-TR') || 0}</span>
+                                        <span className="text-white font-semibold">{stats?.sharedPlatformEvents || 0}</span>
                                     </div>
                                 </div>
-                                <div className="w-full bg-slate-700 rounded-full h-2.5">
+                                <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                                     <div
-                                        className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 h-2.5 rounded-full transition-all duration-500"
+                                        className="h-full bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 rounded-full transition-all duration-500"
                                         style={{ width: `${stats?.activeEvents ? ((stats?.sharedPlatformEvents || 0) / stats.activeEvents) * 100 : 0}%` }}
                                     />
                                 </div>
                             </div>
                         </div>
+
                         {stats?.sharedPlatformEvents && stats.sharedPlatformEvents > 0 ? (
-                            <p className="text-emerald-400 text-sm mt-4 pt-3 border-t border-slate-700">
-                                ✅ <span className="font-semibold">{stats.sharedPlatformEvents.toLocaleString('tr-TR')}</span> etkinlik her iki platformda eşleşmiş durumda.
+                            <p className="text-emerald-400 text-sm mt-6 pt-4 border-t border-slate-800/50 flex items-center gap-2">
+                                <span>✅</span>
+                                <span><strong>{stats.sharedPlatformEvents}</strong> etkinlik her iki platformda eşleştirildi</span>
                             </p>
                         ) : (
-                            <p className="text-slate-500 text-xs mt-4 pt-3 border-t border-slate-700">
+                            <p className="text-slate-500 text-xs mt-6 pt-4 border-t border-slate-800/50">
                                 ℹ️ Henüz platformlar arası eşleşen etkinlik bulunamadı.
                             </p>
                         )}
-                    </div>
+                    </CardContent>
+                </Card>
 
-                    {/* Kategori Dağılımı - Same as before but just ensuring layout integiry */}
-                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                        <h3 className="text-lg font-semibold text-white mb-4">🎭 Kategori Dağılımı</h3>
+                {/* Quick Stats */}
+                <Card>
+                    <CardHeader>
+                        <h3 className="text-lg font-semibold text-white">📈 Hızlı İstatistikler</h3>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50">
+                            <span className="text-slate-400 text-sm">Bu Hafta</span>
+                            <span className="text-2xl font-bold text-emerald-400">{stats?.eventsThisWeek || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50">
+                            <span className="text-slate-400 text-sm">Bu Ay</span>
+                            <span className="text-2xl font-bold text-blue-400">{stats?.eventsThisMonth || 0}</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50">
+                            <span className="text-slate-400 text-sm">Görüntülenme</span>
+                            <span className="text-2xl font-bold text-purple-400">{(stats?.totalViews || 0).toLocaleString('tr-TR')}</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50">
+                            <span className="text-slate-400 text-sm">Tıklama</span>
+                            <span className="text-2xl font-bold text-orange-400">{(stats?.totalClicks || 0).toLocaleString('tr-TR')}</span>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Second Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Latest Events */}
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-white">🆕 Son Eklenen Etkinlikler</h3>
+                            <Link href="/admin/events">
+                                <Button variant="ghost" size="sm">Tümünü Gör →</Button>
+                            </Link>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="divide-y divide-slate-800/50">
+                            {latestEvents.map((event) => (
+                                <div key={event.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-800/30 transition-colors">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-white font-medium truncate">{event.name}</p>
+                                        <p className="text-slate-500 text-sm truncate">{event.venueName} • {event.city}</p>
+                                    </div>
+                                    <div className="flex items-center gap-4 ml-4">
+                                        <div className="flex gap-1">
+                                            {event.platforms?.includes('Biletix') && (
+                                                <span className="w-2 h-2 rounded-full bg-blue-500" title="Biletix"></span>
+                                            )}
+                                            {event.platforms?.includes('Bubilet') && (
+                                                <span className="w-2 h-2 rounded-full bg-purple-500" title="Bubilet"></span>
+                                            )}
+                                        </div>
+                                        <span className="text-slate-400 text-sm whitespace-nowrap">{formatDate(event.date)}</span>
+                                        <span className="text-slate-300 text-sm font-medium whitespace-nowrap">
+                                            {event.minPrice ? `${event.minPrice}₺` : '-'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                            {latestEvents.length === 0 && (
+                                <div className="px-6 py-8 text-center text-slate-500">
+                                    Henüz etkinlik yok
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Scraper Control */}
+                <Card>
+                    <CardHeader>
+                        <h3 className="text-lg font-semibold text-white">🔄 Scraper Kontrolü</h3>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <p className="text-slate-500 text-xs">
+                            Son çalışma: {stats?.lastScrapedAt ? new Date(stats.lastScrapedAt).toLocaleString('tr-TR') : 'Hiç çalışmadı'}
+                        </p>
+
+                        <div className="space-y-3">
+                            <Button
+                                variant="primary"
+                                className="w-full"
+                                onClick={() => runScraper('all')}
+                                isLoading={scraperLoading === 'all'}
+                            >
+                                🌐 Tümünü Çalıştır
+                            </Button>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => runScraper('biletix')}
+                                    isLoading={scraperLoading === 'biletix'}
+                                >
+                                    Biletix
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => runScraper('bubilet')}
+                                    isLoading={scraperLoading === 'bubilet'}
+                                >
+                                    Bubilet
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-800/50">
+                            <p className="text-slate-400 text-xs mb-3">Hızlı Şehir</p>
+                            <div className="flex flex-wrap gap-2">
+                                {['İstanbul', 'Ankara', 'İzmir'].map((city) => (
+                                    <Button
+                                        key={city}
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => runScraper('all')}
+                                    >
+                                        {city}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Category & City Stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Categories */}
+                <Card>
+                    <CardHeader>
+                        <h3 className="text-lg font-semibold text-white">🎭 Kategori Dağılımı</h3>
+                    </CardHeader>
+                    <CardContent>
                         <div className="flex flex-wrap gap-2">
                             {stats?.categoryStats && Object.entries(stats.categoryStats)
                                 .sort((a, b) => b[1] - a[1])
                                 .slice(0, 10)
                                 .map(([category, count]) => (
-                                    <span
-                                        key={category}
-                                        className="px-3 py-1.5 bg-gradient-to-r from-purple-600/30 to-pink-600/30 text-purple-300 rounded-lg text-sm border border-purple-500/30"
-                                    >
-                                        {category}: <span className="font-semibold text-white">{count.toLocaleString('tr-TR')}</span>
-                                    </span>
+                                    <Badge key={category} variant="purple" size="md">
+                                        {category}: {count}
+                                    </Badge>
                                 ))}
                             {(!stats?.categoryStats || Object.keys(stats.categoryStats).length === 0) && (
-                                <p className="text-slate-400 text-sm">Veri yok</p>
+                                <p className="text-slate-500 text-sm">Veri yok</p>
                             )}
                         </div>
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    {/* Şehir Dağılımı - Top 5 */}
-                    <div className="lg:col-span-1 bg-slate-800 rounded-xl p-6 border border-slate-700">
-                        <h3 className="text-lg font-semibold text-white mb-4">🏙️ En Çok Etkinlik - Şehirler</h3>
+                {/* Cities */}
+                <Card>
+                    <CardHeader>
+                        <h3 className="text-lg font-semibold text-white">🏙️ En Çok Etkinlik - Şehirler</h3>
+                    </CardHeader>
+                    <CardContent>
                         <div className="space-y-3">
                             {stats?.cityStats && Object.entries(stats.cityStats).map(([city, count], index) => (
                                 <div key={city} className="flex items-center gap-3">
                                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${index === 0 ? 'bg-yellow-500 text-black' :
-                                        index === 1 ? 'bg-slate-400 text-black' :
-                                            index === 2 ? 'bg-orange-600 text-white' :
-                                                'bg-slate-600 text-white'
+                                            index === 1 ? 'bg-slate-400 text-black' :
+                                                index === 2 ? 'bg-orange-600 text-white' :
+                                                    'bg-slate-700 text-white'
                                         }`}>
                                         {index + 1}
                                     </span>
@@ -388,335 +404,31 @@ export default function AdminDashboard() {
                                 </div>
                             ))}
                             {(!stats?.cityStats || Object.keys(stats.cityStats).length === 0) && (
-                                <p className="text-slate-400 text-sm">Veri yok</p>
+                                <p className="text-slate-500 text-sm">Veri yok</p>
                             )}
                         </div>
-                    </div>
+                    </CardContent>
+                </Card>
+            </div>
 
-                    {/* Latest Events Widget - New */}
-                    <div className="lg:col-span-2 bg-slate-800 rounded-xl p-6 border border-slate-700">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-white">🆕 Son Eklenen Etkinlikler</h3>
-                            <Link href="/admin/events" className="text-blue-400 text-sm hover:text-blue-300">Tümünü Gör →</Link>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="text-xs uppercase text-slate-400 bg-slate-700/30">
-                                    <tr>
-                                        <th className="px-4 py-2">Etkinlik</th>
-                                        <th className="px-4 py-2">Platform</th>
-                                        <th className="px-4 py-2">Tarih</th>
-                                        <th className="px-4 py-2 text-right">Fiyat</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-700">
-                                    {latestEvents.map((evt) => (
-                                        <tr key={evt.id} className="hover:bg-slate-700/20">
-                                            <td className="px-4 py-3">
-                                                <div className="text-white font-medium truncate max-w-[200px]">{evt.name}</div>
-                                                <div className="text-slate-500 text-xs">{evt.venueName}, {evt.city}</div>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <div className="flex gap-1">
-                                                    {evt.platforms && evt.platforms.includes('Biletix') && <span className="w-2 h-2 rounded-full bg-blue-500" title="Biletix"></span>}
-                                                    {evt.platforms && evt.platforms.includes('Bubilet') && <span className="w-2 h-2 rounded-full bg-purple-500" title="Bubilet"></span>}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 text-slate-300">
-                                                {new Date(evt.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                                            </td>
-                                            <td className="px-4 py-3 text-right text-slate-300">
-                                                {evt.minPrice ? `${evt.minPrice}₺` : '-'}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {latestEvents.length === 0 && (
-                                        <tr><td colSpan={4} className="px-4 py-4 text-center text-slate-500">Kayıt yok</td></tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
-                    {/* Analytics & Yaklaşan Etkinlikler */}
-                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                        <h3 className="text-lg font-semibold text-white mb-4">📊 Analytics Özet</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                                <p className="text-3xl font-bold text-green-400">{stats?.eventsThisWeek || 0}</p>
-                                <p className="text-slate-400 text-sm mt-1">Bu Hafta</p>
-                            </div>
-                            <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                                <p className="text-3xl font-bold text-blue-400">{stats?.eventsThisMonth || 0}</p>
-                                <p className="text-slate-400 text-sm mt-1">Bu Ay</p>
-                            </div>
-                            <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                                <p className="text-3xl font-bold text-purple-400">{(stats?.totalViews || 0).toLocaleString('tr-TR')}</p>
-                                <p className="text-slate-400 text-sm mt-1">👁️ Görüntülenme</p>
-                            </div>
-                            <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                                <p className="text-3xl font-bold text-orange-400">{(stats?.totalClicks || 0).toLocaleString('tr-TR')}</p>
-                                <p className="text-slate-400 text-sm mt-1">🖱️ Tıklama</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <ScheduledJobsControl />
-
-                {/* Scraper Control */}
-                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8">
-                    <h3 className="text-lg font-semibold text-white mb-4">🔄 Scraper Kontrolü</h3>
-                    <p className="text-slate-400 text-sm mb-4">
-                        Son çalışma: {formatDate(stats?.lastScrapedAt || null)}
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                        {/* Platform Seçimi */}
-                        <div>
-                            <label className="block text-slate-400 text-sm mb-2">Platform</label>
-                            <select
-                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-                                id="scraper-platform"
-                                defaultValue="all"
-                            >
-                                <option value="all">🌐 Tümü</option>
-                                <option value="biletix">🎫 Biletix</option>
-                                <option value="bubilet">🎟️ Bubilet</option>
-                            </select>
-                        </div>
-
-                        {/* Sorgu Tipi */}
-                        <div>
-                            <label className="block text-slate-400 text-sm mb-2">Sorgu Tipi</label>
-                            <select
-                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-                                id="scraper-query-type"
-                                defaultValue="general"
-                            >
-                                <option value="general">📋 Genel (Tüm Etkinlikler)</option>
-                                <option value="city">🏙️ Şehir Bazlı</option>
-                                <option value="venue">🏛️ Mekan Bazlı</option>
-                                <option value="artist">🎤 Sanatçı Bazlı</option>
-                            </select>
-                        </div>
-
-                        {/* Sorgu Değeri */}
-                        <div>
-                            <label className="block text-slate-400 text-sm mb-2">Sorgu Değeri</label>
-                            <input
-                                type="text"
-                                id="scraper-query-value"
-                                placeholder="Örn: İstanbul, Volkswagen Arena..."
-                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400"
-                            />
-                        </div>
-
-                        {/* Çalıştır Butonu */}
-                        <div className="flex items-end">
-                            <button
-                                onClick={() => {
-                                    const platform = (document.getElementById('scraper-platform') as HTMLSelectElement)?.value || 'all';
-                                    const queryType = (document.getElementById('scraper-query-type') as HTMLSelectElement)?.value || 'general';
-                                    const queryValue = (document.getElementById('scraper-query-value') as HTMLInputElement)?.value || '';
-                                    runScraper(platform, queryType, queryValue);
-                                }}
-                                disabled={scraperLoading !== null}
-                                className="w-full px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 transition font-semibold"
-                            >
-                                {scraperLoading ? '⏳ Çalışıyor...' : '▶️ Çalıştır'}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Hızlı Erişim Butonları */}
-                    <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-700">
-                        <span className="text-slate-400 text-sm mr-2">Hızlı:</span>
-                        <button
-                            onClick={() => runScraper('all', 'general', '')}
-                            disabled={scraperLoading !== null}
-                            className="px-3 py-1 bg-slate-700 text-white rounded text-sm hover:bg-slate-600 disabled:opacity-50"
-                        >
-                            🌐 Tümü
-                        </button>
-                        <button
-                            onClick={() => runScraper('biletix', 'general', '')}
-                            disabled={scraperLoading !== null}
-                            className="px-3 py-1 bg-blue-600/30 text-blue-400 rounded text-sm hover:bg-blue-600/50 disabled:opacity-50"
-                        >
-                            Biletix
-                        </button>
-                        <button
-                            onClick={() => runScraper('bubilet', 'general', '')}
-                            disabled={scraperLoading !== null}
-                            className="px-3 py-1 bg-purple-600/30 text-purple-400 rounded text-sm hover:bg-purple-600/50 disabled:opacity-50"
-                        >
-                            Bubilet
-                        </button>
-                        <button
-                            onClick={() => runScraper('all', 'city', 'İstanbul')}
-                            disabled={scraperLoading !== null}
-                            className="px-3 py-1 bg-orange-600/30 text-orange-400 rounded text-sm hover:bg-orange-600/50 disabled:opacity-50"
-                        >
-                            🏙️ İstanbul
-                        </button>
-                        <button
-                            onClick={() => runScraper('all', 'city', 'Ankara')}
-                            disabled={scraperLoading !== null}
-                            className="px-3 py-1 bg-orange-600/30 text-orange-400 rounded text-sm hover:bg-orange-600/50 disabled:opacity-50"
-                        >
-                            🏙️ Ankara
-                        </button>
-                        <button
-                            onClick={async () => {
-                                if (!confirm('Duplicate etkinlikleri temizlemek istediğinize emin misiniz?')) return;
-                                try {
-                                    const token = localStorage.getItem('adminToken');
-                                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-                                    const response = await fetch(`${apiUrl}/api/admin/cleanup/duplicates`, {
-                                        method: 'POST',
-                                        headers: { 'Authorization': `Bearer ${token}` }
-                                    });
-                                    const data = await response.json();
-                                    alert(data.message);
-                                } catch (error) {
-                                    alert('Temizlik başarısız');
-                                }
-                            }}
-                            className="px-3 py-1 bg-red-600/30 text-red-400 rounded text-sm hover:bg-red-600/50"
-                        >
-                            🧹 Duplicate Temizle
-                        </button>
-                    </div>
-                </div>
-
-                {/* Event Merge Section */}
-                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8">
-                    <h3 className="text-lg font-semibold text-white mb-4">🔗 Etkinlik Birleştirme</h3>
-                    <p className="text-slate-400 text-sm mb-4">Aynı etkinliğin farklı platformlardan gelen kayıtlarını birleştirin.</p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label className="block text-slate-400 text-sm mb-2">Etkinlik Ara</label>
-                            <input
-                                type="text"
-                                value={mergeSearchQuery}
-                                onChange={(e) => searchEventsForMerge(e.target.value)}
-                                placeholder="Etkinlik adı yazın..."
-                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400"
-                            />
-                        </div>
-                    </div>
-
-                    {mergeSearchResults.length > 0 && (
-                        <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
-                            {mergeSearchResults.map((event) => (
-                                <div
-                                    key={event.id}
-                                    className={`flex items-center justify-between p-3 rounded-lg transition ${selectedPrimary?.id === event.id ? 'bg-blue-600/20 border border-blue-500' :
-                                        selectedSecondary?.id === event.id ? 'bg-purple-600/20 border border-purple-500' :
-                                            'bg-slate-700/50'
-                                        }`}
-                                >
-                                    <div className="flex-1">
-                                        <span className="text-white font-medium">{event.name}</span>
-                                        <span className="text-slate-400 text-sm ml-2">{event.city} • {event.category}</span>
-                                        <span className="text-slate-500 text-xs ml-2">{new Date(event.date).toLocaleDateString('tr-TR')}</span>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => selectedSecondary?.id !== event.id && setSelectedPrimary({ id: event.id, name: event.name })}
-                                            disabled={selectedSecondary?.id === event.id}
-                                            className={`px-2 py-1 text-xs rounded transition ${selectedPrimary?.id === event.id ? 'bg-blue-600 text-white' : 'bg-slate-600 text-slate-300'
-                                                } ${selectedSecondary?.id === event.id ? 'opacity-50' : ''}`}
-                                        >Ana</button>
-                                        <button
-                                            onClick={() => selectedPrimary?.id !== event.id && setSelectedSecondary({ id: event.id, name: event.name })}
-                                            disabled={selectedPrimary?.id === event.id}
-                                            className={`px-2 py-1 text-xs rounded transition ${selectedSecondary?.id === event.id ? 'bg-purple-600 text-white' : 'bg-slate-600 text-slate-300'
-                                                } ${selectedPrimary?.id === event.id ? 'opacity-50' : ''}`}
-                                        >İkincil</button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {selectedPrimary && selectedSecondary && (
-                        <>
-                            <div className="p-4 bg-slate-700/50 rounded-lg mb-4">
-                                <p className="text-white text-sm mb-2">📌 <strong>Ana Etkinlik:</strong> {selectedPrimary.name}</p>
-                                <p className="text-slate-400 text-sm">🔄 <strong>Birleştirilecek:</strong> {selectedSecondary.name}</p>
-                                <p className="text-yellow-400 text-xs mt-2">⚠️ İkincil etkinliğin kaynakları ana etkinliğe taşınacak ve ikincil silinecek.</p>
-                            </div>
-                            <button
-                                onClick={mergeSelectedEvents}
-                                disabled={mergeLoading}
-                                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 transition font-semibold"
-                            >
-                                {mergeLoading ? '⏳ Birleştiriliyor...' : '🔗 Birleştir'}
-                            </button>
-                            <button
-                                onClick={() => { setSelectedPrimary(null); setSelectedSecondary(null); }}
-                                className="ml-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-500 transition"
-                            >
-                                Temizle
-                            </button>
-                        </>
-                    )}
-                </div>
-
-                {/* Quick Links */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Link href="/admin/events" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-blue-500 transition group">
-                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400">🎫 Events Yönetimi</h3>
-                        <p className="text-slate-400 text-sm">Etkinlikleri görüntüle, düzenle veya sil</p>
+            {/* Quick Links */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                    { href: '/admin/events', icon: '🎫', title: 'Etkinlik Yönetimi', desc: 'Etkinlikleri görüntüle ve düzenle', color: 'blue' },
+                    { href: '/admin/artists', icon: '🎤', title: 'Sanatçı Yönetimi', desc: 'Sanatçıları görüntüle ve düzenle', color: 'purple' },
+                    { href: '/admin/venues', icon: '🏛️', title: 'Mekan Yönetimi', desc: 'Mekanları görüntüle ve düzenle', color: 'orange' },
+                    { href: '/admin/analytics', icon: '📊', title: 'Analytics', desc: 'Görüntülenme ve tıklama istatistikleri', color: 'green' },
+                ].map((item) => (
+                    <Link key={item.href} href={item.href}>
+                        <Card hover className="h-full">
+                            <CardContent>
+                                <span className="text-3xl mb-3 block">{item.icon}</span>
+                                <h4 className="text-white font-semibold mb-1">{item.title}</h4>
+                                <p className="text-slate-500 text-sm">{item.desc}</p>
+                            </CardContent>
+                        </Card>
                     </Link>
-                    <Link href="/admin/artists" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-purple-500 transition group">
-                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-purple-400">🎤 Artists Yönetimi</h3>
-                        <p className="text-slate-400 text-sm">Sanatçıları görüntüle ve düzenle</p>
-                    </Link>
-                    <Link href="/admin/venues" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-orange-500 transition group">
-                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-orange-400">🏛️ Venues Yönetimi</h3>
-                        <p className="text-slate-400 text-sm">Mekanları görüntüle ve düzenle</p>
-                    </Link>
-                    <Link href="/admin/analytics" className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-green-500 transition group">
-                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-green-400">📊 Analytics</h3>
-                        <p className="text-slate-400 text-sm">Görüntülenme, tıklama ve popülerlik istatistikleri</p>
-                    </Link>
-                </div>
-            </main>
-        </div>
-    );
-}
-
-interface StatCardProps {
-    title: string;
-    value: number;
-    icon: string;
-    color: 'blue' | 'green' | 'purple' | 'orange';
-}
-
-function StatCard({ title, value, icon, color }: StatCardProps) {
-    const colorClasses = {
-        blue: 'from-blue-500 to-blue-600',
-        green: 'from-green-500 to-green-600',
-        purple: 'from-purple-500 to-purple-600',
-        orange: 'from-orange-500 to-orange-600'
-    };
-
-    return (
-        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-slate-400 text-sm">{title}</p>
-                    <p className="text-3xl font-bold text-white mt-1">{value}</p>
-                </div>
-                <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${colorClasses[color]} flex items-center justify-center text-2xl`}>
-                    {icon}
-                </div>
+                ))}
             </div>
         </div>
     );

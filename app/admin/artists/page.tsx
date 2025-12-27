@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Card, CardContent, Button, Input, Badge, PageHeader, Pagination } from '../components/ui';
 
 interface Artist {
     id: string;
@@ -97,35 +97,11 @@ export default function AdminArtists() {
                 const updatedArtist = { ...editForm, isManuallyEdited: isManual };
                 setArtists(artists.map(a => a.id === editingId ? { ...a, ...updatedArtist } : a));
                 setEditingId(null);
-                if (isManual) {
-                    alert('Sanatçı manuel olarak güncellendi. Scraper bu sanatçıyı güncellemeyecek.');
-                }
             }
-        } catch (error) {
+        } catch {
             alert('Güncelleme başarısız');
         } finally {
             setSaving(false);
-        }
-    };
-
-    const handleResetManual = async (id: string) => {
-        if (!confirm('Manuel düzenleme bayrağını kaldırmak istediğinize emin misiniz?')) return;
-
-        const token = localStorage.getItem('adminToken');
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-
-        try {
-            const response = await fetch(`${apiUrl}/api/admin/artists/${id}/reset-manual`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (response.ok) {
-                setArtists(artists.map(a => a.id === id ? { ...a, isManuallyEdited: false } : a));
-                alert('Manuel düzenleme bayrağı kaldırıldı.');
-            }
-        } catch (error) {
-            alert('Bir hata oluştu');
         }
     };
 
@@ -147,144 +123,149 @@ export default function AdminArtists() {
                 const data = await response.json();
                 alert(data.message || 'Silme başarısız');
             }
-        } catch (error) {
+        } catch {
             alert('Bir hata oluştu');
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-900">
-            <nav className="bg-slate-800 border-b border-slate-700">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center gap-8">
-                            <Link href="/admin" className="text-xl font-bold text-white">🎛️ BiletLink Admin</Link>
-                            <div className="flex gap-4">
-                                <Link href="/admin" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700">Dashboard</Link>
-                                <Link href="/admin/events" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700">🎫 Events</Link>
-                                <Link href="/admin/artists" className="text-white bg-slate-700 px-3 py-2 rounded-lg text-sm">🎤 Artists</Link>
-                                <Link href="/admin/venues" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700">🏛️ Venues</Link>
-                            </div>
+        <div className="space-y-6">
+            <PageHeader
+                title="Sanatçı Yönetimi"
+                description={`Toplam ${total} sanatçı`}
+                icon="🎤"
+            />
+
+            {/* Search */}
+            <Card>
+                <CardContent>
+                    <div className="flex items-center gap-4">
+                        <div className="flex-1 max-w-md">
+                            <Input
+                                placeholder="Sanatçı ara..."
+                                value={search}
+                                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                                icon={<span>🔍</span>}
+                            />
                         </div>
                     </div>
-                </div>
-            </nav>
+                </CardContent>
+            </Card>
 
-            <main className="max-w-7xl mx-auto px-4 py-8">
-                <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-2xl font-bold text-white">🎤 Artists ({total})</h2>
-                    <input
-                        type="text"
-                        placeholder="Sanatçı ara..."
-                        value={search}
-                        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-
-                <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+            {/* Artists Table */}
+            <Card>
+                <CardContent className="p-0">
                     {loading ? (
-                        <div className="p-8 text-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent mx-auto"></div>
+                        <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
                         </div>
                     ) : (
-                        <table className="w-full">
-                            <thead className="bg-slate-700/50">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Ad</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Tür</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">Bio</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-400 uppercase">İşlemler</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-700">
-                                {artists.map((artist) => (
-                                    <tr key={artist.id} className="hover:bg-slate-700/30">
-                                        <td className="px-4 py-4">
-                                            {editingId === artist.id ? (
-                                                <input
-                                                    value={editForm.name}
-                                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                                    className="px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white"
-                                                />
-                                            ) : (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-white font-medium">{artist.name}</span>
-                                                    {artist.isManuallyEdited && (
-                                                        <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full border border-amber-500/30" title="Manuel düzenlenmiş - scraper güncellemeyecek">
-                                                            ✏️
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            {editingId === artist.id ? (
-                                                <input
-                                                    value={editForm.genre}
-                                                    onChange={(e) => setEditForm({ ...editForm, genre: e.target.value })}
-                                                    className="px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white"
-                                                />
-                                            ) : (
-                                                <span className="text-slate-300">{artist.genre || '-'}</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-4 text-slate-400 text-sm truncate max-w-xs">
-                                            {artist.bio || '-'}
-                                        </td>
-                                        <td className="px-4 py-4 text-right">
-                                            {editingId === artist.id ? (
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        onClick={() => handleSave(false)}
-                                                        disabled={saving}
-                                                        className="text-green-400 hover:text-green-300 text-sm"
-                                                        title="Normal Kaydet"
-                                                    >
-                                                        ✓
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleSave(true)}
-                                                        disabled={saving}
-                                                        className="px-2 py-1 bg-amber-600 text-white text-xs rounded hover:bg-amber-700"
-                                                        title="Manuel Kaydet - Scraper güncellemeyecek"
-                                                    >
-                                                        ✏️ Manuel
-                                                    </button>
-                                                    <button onClick={() => setEditingId(null)} className="text-slate-400 hover:text-slate-300">✗</button>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button onClick={() => handleEdit(artist)} className="text-blue-400 hover:text-blue-300">✏️</button>
-                                                    {artist.isManuallyEdited && (
-                                                        <button
-                                                            onClick={() => handleResetManual(artist.id)}
-                                                            className="text-amber-400 hover:text-amber-300 text-xs"
-                                                            title="Manuel bayrağını kaldır"
-                                                        >
-                                                            ↺
-                                                        </button>
-                                                    )}
-                                                    <button onClick={() => handleDelete(artist.id, artist.name)} className="text-red-400 hover:text-red-300">🗑️</button>
-                                                </div>
-                                            )}
-                                        </td>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-slate-800/50 bg-slate-800/30">
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Sanatçı</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Tür</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Biyografi</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">İşlem</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/30">
+                                    {artists.map((artist) => (
+                                        <tr key={artist.id} className="hover:bg-slate-800/20 transition-colors">
+                                            <td className="px-4 py-4">
+                                                {editingId === artist.id ? (
+                                                    <Input
+                                                        value={editForm.name}
+                                                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                                        className="max-w-[200px]"
+                                                    />
+                                                ) : (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-white font-medium">{artist.name}</span>
+                                                        {artist.isManuallyEdited && (
+                                                            <Badge variant="warning" size="sm">✏️ Manuel</Badge>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                {editingId === artist.id ? (
+                                                    <Input
+                                                        value={editForm.genre}
+                                                        onChange={(e) => setEditForm({ ...editForm, genre: e.target.value })}
+                                                        className="max-w-[150px]"
+                                                    />
+                                                ) : (
+                                                    <span className="text-slate-300">{artist.genre || '-'}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 text-slate-400 text-sm truncate max-w-xs">
+                                                {editingId === artist.id ? (
+                                                    <Input
+                                                        value={editForm.bio}
+                                                        onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                                                    />
+                                                ) : (
+                                                    artist.bio || '-'
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 text-right">
+                                                {editingId === artist.id ? (
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button
+                                                            variant="success"
+                                                            size="sm"
+                                                            onClick={() => handleSave(false)}
+                                                            isLoading={saving}
+                                                        >
+                                                            ✓
+                                                        </Button>
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            onClick={() => handleSave(true)}
+                                                            isLoading={saving}
+                                                        >
+                                                            ✏️ Manuel
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => setEditingId(null)}
+                                                        >
+                                                            ✗
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button variant="ghost" size="sm" onClick={() => handleEdit(artist)}>✏️</Button>
+                                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(artist.id, artist.name)}>🗑️</Button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {artists.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-4 py-12 text-center text-slate-500">
+                                                <span className="text-4xl block mb-3">📭</span>
+                                                Sanatçı bulunamadı
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
-                </div>
+                </CardContent>
+            </Card>
 
-                {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 mt-6">
-                        <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 bg-slate-800 text-white rounded-lg disabled:opacity-50">← Önceki</button>
-                        <span className="text-slate-400 px-4">{page} / {totalPages}</span>
-                        <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-4 py-2 bg-slate-800 text-white rounded-lg disabled:opacity-50">Sonraki →</button>
-                    </div>
-                )}
-            </main>
+            <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+            />
         </div>
     );
 }
-

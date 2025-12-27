@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Card, CardContent, CardHeader, Badge, Button, PageHeader, StatCard, Skeleton } from '../components/ui';
 
 interface AnalyticsSummary {
     totalViews: number;
@@ -100,17 +101,17 @@ export default function AnalyticsDashboard() {
                 <head>
                     <title>BiletLink Analytics Raporu</title>
                     <style>
-                        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+                        body { font-family: system-ui, sans-serif; padding: 40px; color: #333; max-width: 1000px; margin: 0 auto; }
                         h1 { color: #1e40af; border-bottom: 2px solid #1e40af; padding-bottom: 10px; }
                         h2 { color: #374151; margin-top: 30px; }
                         .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0; }
-                        .stat-card { background: #f9fafb; padding: 20px; border-radius: 8px; text-align: center; }
-                        .stat-value { font-size: 36px; font-weight: bold; color: #059669; }
-                        .stat-label { color: #6b7280; }
+                        .stat-card { background: #f9fafb; padding: 20px; border-radius: 12px; text-align: center; }
+                        .stat-value { font-size: 32px; font-weight: bold; color: #059669; }
+                        .stat-label { color: #6b7280; margin-top: 5px; }
                         table { width: 100%; border-collapse: collapse; margin: 20px 0; }
                         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-                        th { background: #f3f4f6; font-weight: bold; }
-                        .footer { margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; }
+                        th { background: #f3f4f6; font-weight: 600; }
+                        .footer { margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; border-top: 1px solid #e5e7eb; padding-top: 20px; }
                     </style>
                 </head>
                 <body>
@@ -119,64 +120,35 @@ export default function AnalyticsDashboard() {
                     
                     <div class="stat-grid">
                         <div class="stat-card">
-                            <div class="stat-value">${summary?.totalViews || 0}</div>
+                            <div class="stat-value">${(summary?.totalViews || 0).toLocaleString('tr-TR')}</div>
                             <div class="stat-label">Toplam Görüntülenme</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value">${summary?.totalClicks || 0}</div>
+                            <div class="stat-value">${(summary?.totalClicks || 0).toLocaleString('tr-TR')}</div>
                             <div class="stat-label">Toplam Tıklama</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-value">${summary?.clickThroughRate || 0}%</div>
-                            <div class="stat-label">Tıklama Oranı</div>
+                            <div class="stat-label">Tıklama Oranı (CTR)</div>
                         </div>
                     </div>
                     
-                    <h2>🏆 En Popüler Etkinlikler (Görüntülenme)</h2>
+                    <h2>🏆 En Popüler Etkinlikler</h2>
                     <table>
                         <tr><th>Etkinlik</th><th>Şehir</th><th>Görüntüleme</th><th>Tıklama</th><th>CTR</th></tr>
-                        ${popularByViews.map(e => `
+                        ${popularByViews.slice(0, 10).map(e => `
                             <tr>
                                 <td>${e.name}</td>
                                 <td>${e.city}</td>
-                                <td>${e.viewCount}</td>
-                                <td>${e.clickCount}</td>
+                                <td>${e.viewCount.toLocaleString('tr-TR')}</td>
+                                <td>${e.clickCount.toLocaleString('tr-TR')}</td>
                                 <td>${e.clickThroughRate}%</td>
                             </tr>
                         `).join('')}
                     </table>
                     
-                    <h2>📂 Kategori Bazlı İstatistikler</h2>
-                    <table>
-                        <tr><th>Kategori</th><th>Etkinlik</th><th>Görüntüleme</th><th>Tıklama</th><th>CTR</th></tr>
-                        ${categoryStats.map(c => `
-                            <tr>
-                                <td>${c.category}</td>
-                                <td>${c.eventCount}</td>
-                                <td>${c.totalViews}</td>
-                                <td>${c.totalClicks}</td>
-                                <td>${c.clickThroughRate}%</td>
-                            </tr>
-                        `).join('')}
-                    </table>
-                    
-                    <h2>🏙️ Şehir Bazlı İstatistikler</h2>
-                    <table>
-                        <tr><th>Şehir</th><th>Etkinlik</th><th>Görüntüleme</th><th>Tıklama</th><th>CTR</th></tr>
-                        ${cityStats.map(c => `
-                            <tr>
-                                <td>${c.city}</td>
-                                <td>${c.eventCount}</td>
-                                <td>${c.totalViews}</td>
-                                <td>${c.totalClicks}</td>
-                                <td>${c.clickThroughRate}%</td>
-                            </tr>
-                        `).join('')}
-                    </table>
-                    
                     <div class="footer">
-                        <p>Bu rapor BiletLink Admin Paneli tarafından oluşturulmuştur.</p>
-                        <p>© 2025 BiletLink</p>
+                        <p>Bu rapor BiletLink Admin Paneli tarafından otomatik oluşturulmuştur.</p>
                     </div>
                 </body>
                 </html>
@@ -188,165 +160,157 @@ export default function AnalyticsDashboard() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+            <div className="space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}
+                </div>
+                <Skeleton className="h-80 rounded-2xl" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-900">
-            {/* Navbar */}
-            <nav className="bg-slate-800 border-b border-slate-700">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center gap-8">
-                            <Link href="/admin" className="text-xl font-bold text-white">🎛️ BiletLink Admin</Link>
-                            <div className="flex gap-4">
-                                <Link href="/admin" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700">Dashboard</Link>
-                                <Link href="/admin/events" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700">🎫 Events</Link>
-                                <Link href="/admin/artists" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700">🎤 Artists</Link>
-                                <Link href="/admin/venues" className="text-slate-300 hover:text-white px-3 py-2 rounded-lg text-sm hover:bg-slate-700">🏛️ Venues</Link>
-                                <Link href="/admin/analytics" className="text-white bg-slate-700 px-3 py-2 rounded-lg text-sm">📊 Analytics</Link>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            <main className="max-w-7xl mx-auto px-4 py-8">
-                <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-2xl font-bold text-white">📊 Analytics Dashboard</h2>
-                    <button
-                        onClick={exportReport}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
-                    >
+        <div className="space-y-6">
+            <PageHeader
+                title="Analytics Dashboard"
+                description="Görüntülenme ve tıklama istatistikleri"
+                icon="📊"
+                actions={
+                    <Button variant="success" onClick={exportReport}>
                         📄 PDF Rapor Al
-                    </button>
-                </div>
+                    </Button>
+                }
+            />
 
-                {/* Summary Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-                    <StatCard label="Toplam Görüntüleme" value={summary?.totalViews || 0} icon="👁️" />
-                    <StatCard label="Toplam Tıklama" value={summary?.totalClicks || 0} icon="🖱️" />
-                    <StatCard label="Tıklama Oranı" value={`${summary?.clickThroughRate || 0}%`} icon="📈" />
-                    <StatCard label="Toplam Etkinlik" value={summary?.totalEvents || 0} icon="🎫" />
-                    <StatCard label="Aktif Etkinlik" value={summary?.activeEvents || 0} icon="✅" />
-                    <StatCard label="Ort. Görüntüleme" value={summary?.averageViewsPerEvent || 0} icon="📊" />
-                </div>
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <StatCard title="Görüntülenme" value={summary?.totalViews || 0} icon="👁️" color="blue" />
+                <StatCard title="Tıklama" value={summary?.totalClicks || 0} icon="🖱️" color="green" />
+                <StatCard title="CTR" value={`${summary?.clickThroughRate || 0}%`} icon="📈" color="purple" />
+                <StatCard title="Toplam Etkinlik" value={summary?.totalEvents || 0} icon="🎫" color="orange" />
+                <StatCard title="Aktif Etkinlik" value={summary?.activeEvents || 0} icon="✅" color="green" />
+                <StatCard title="Ort. Görüntüleme" value={summary?.averageViewsPerEvent || 0} icon="📊" color="blue" />
+            </div>
 
-                {/* Popular Events */}
-                <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8">
-                    <div className="flex items-center justify-between mb-4">
+            {/* Popular Events */}
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-white">🏆 En Popüler Etkinlikler</h3>
                         <div className="flex gap-2">
-                            <button
+                            <Button
+                                variant={activeTab === 'views' ? 'primary' : 'secondary'}
+                                size="sm"
                                 onClick={() => setActiveTab('views')}
-                                className={`px-3 py-1 rounded text-sm ${activeTab === 'views' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}
                             >
                                 Görüntüleme
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                                variant={activeTab === 'clicks' ? 'primary' : 'secondary'}
+                                size="sm"
                                 onClick={() => setActiveTab('clicks')}
-                                className={`px-3 py-1 rounded text-sm ${activeTab === 'clicks' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'}`}
                             >
                                 Tıklama
-                            </button>
+                            </Button>
                         </div>
                     </div>
+                </CardHeader>
+                <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="text-slate-400 text-sm border-b border-slate-700">
-                                    <th className="text-left py-3 px-2">#</th>
-                                    <th className="text-left py-3 px-2">Etkinlik</th>
-                                    <th className="text-left py-3 px-2">Şehir</th>
-                                    <th className="text-right py-3 px-2">👁️ Görüntüleme</th>
-                                    <th className="text-right py-3 px-2">🖱️ Tıklama</th>
-                                    <th className="text-right py-3 px-2">📈 CTR</th>
+                                <tr className="border-b border-slate-800/50 bg-slate-800/30">
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">#</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Etkinlik</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Şehir</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">👁️ Görüntüleme</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">🖱️ Tıklama</th>
+                                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">📈 CTR</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-slate-800/30">
                                 {(activeTab === 'views' ? popularByViews : popularByClicks).map((event, i) => (
-                                    <tr key={event.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
-                                        <td className="py-3 px-2 text-slate-500">{i + 1}</td>
-                                        <td className="py-3 px-2">
-                                            <div className="text-white font-medium">{event.name}</div>
-                                            <div className="text-slate-400 text-sm">{event.artistName}</div>
+                                    <tr key={event.id} className="hover:bg-slate-800/20 transition-colors">
+                                        <td className="px-4 py-3 text-slate-500">{i + 1}</td>
+                                        <td className="px-4 py-3">
+                                            <Link href={`/event/${event.id}`} className="hover:underline">
+                                                <div className="text-white font-medium">{event.name}</div>
+                                                <div className="text-slate-500 text-sm">{event.artistName}</div>
+                                            </Link>
                                         </td>
-                                        <td className="py-3 px-2 text-slate-300">{event.city}</td>
-                                        <td className="py-3 px-2 text-right text-white font-semibold">{event.viewCount}</td>
-                                        <td className="py-3 px-2 text-right text-blue-400 font-semibold">{event.clickCount}</td>
-                                        <td className="py-3 px-2 text-right">
-                                            <span className={`px-2 py-1 rounded text-xs font-semibold ${event.clickThroughRate >= 10 ? 'bg-green-500/20 text-green-400' :
-                                                    event.clickThroughRate >= 5 ? 'bg-yellow-500/20 text-yellow-400' :
-                                                        'bg-slate-500/20 text-slate-400'
-                                                }`}>
+                                        <td className="px-4 py-3 text-slate-300">{event.city}</td>
+                                        <td className="px-4 py-3 text-right text-white font-semibold">{event.viewCount.toLocaleString('tr-TR')}</td>
+                                        <td className="px-4 py-3 text-right text-blue-400 font-semibold">{event.clickCount.toLocaleString('tr-TR')}</td>
+                                        <td className="px-4 py-3 text-right">
+                                            <Badge
+                                                variant={event.clickThroughRate >= 10 ? 'success' : event.clickThroughRate >= 5 ? 'warning' : 'default'}
+                                                size="sm"
+                                            >
                                                 {event.clickThroughRate}%
-                                            </span>
+                                            </Badge>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </CardContent>
+            </Card>
 
-                {/* Category & City Stats */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Category Stats */}
-                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                        <h3 className="text-lg font-semibold text-white mb-4">📂 Kategori Bazlı</h3>
-                        <div className="space-y-3">
+            {/* Category & City Stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Category Stats */}
+                <Card>
+                    <CardHeader>
+                        <h3 className="text-lg font-semibold text-white">📂 Kategori Bazlı</h3>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
                             {categoryStats.slice(0, 8).map((cat) => (
-                                <div key={cat.category} className="flex items-center justify-between">
+                                <div key={cat.category} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/30 hover:bg-slate-800/50 transition-colors">
                                     <div className="flex items-center gap-3">
-                                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-sm">{cat.category}</span>
-                                        <span className="text-slate-400 text-sm">{cat.eventCount} etkinlik</span>
+                                        <Badge variant="info" size="md">{cat.category}</Badge>
+                                        <span className="text-slate-500 text-sm">{cat.eventCount} etkinlik</span>
                                     </div>
                                     <div className="flex items-center gap-4 text-sm">
-                                        <span className="text-slate-300">👁️ {cat.totalViews}</span>
-                                        <span className="text-blue-400">🖱️ {cat.totalClicks}</span>
-                                        <span className="text-green-400">{cat.clickThroughRate}%</span>
+                                        <span className="text-slate-300">👁️ {cat.totalViews.toLocaleString('tr-TR')}</span>
+                                        <span className="text-blue-400">🖱️ {cat.totalClicks.toLocaleString('tr-TR')}</span>
+                                        <Badge variant={cat.clickThroughRate >= 5 ? 'success' : 'default'} size="sm">
+                                            {cat.clickThroughRate}%
+                                        </Badge>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </CardContent>
+                </Card>
 
-                    {/* City Stats */}
-                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                        <h3 className="text-lg font-semibold text-white mb-4">🏙️ Şehir Bazlı</h3>
-                        <div className="space-y-3">
+                {/* City Stats */}
+                <Card>
+                    <CardHeader>
+                        <h3 className="text-lg font-semibold text-white">🏙️ Şehir Bazlı</h3>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
                             {cityStats.slice(0, 8).map((city) => (
-                                <div key={city.city} className="flex items-center justify-between">
+                                <div key={city.city} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/30 hover:bg-slate-800/50 transition-colors">
                                     <div className="flex items-center gap-3">
-                                        <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-sm">{city.city}</span>
-                                        <span className="text-slate-400 text-sm">{city.eventCount} etkinlik</span>
+                                        <Badge variant="purple" size="md">{city.city}</Badge>
+                                        <span className="text-slate-500 text-sm">{city.eventCount} etkinlik</span>
                                     </div>
                                     <div className="flex items-center gap-4 text-sm">
-                                        <span className="text-slate-300">👁️ {city.totalViews}</span>
-                                        <span className="text-blue-400">🖱️ {city.totalClicks}</span>
-                                        <span className="text-green-400">{city.clickThroughRate}%</span>
+                                        <span className="text-slate-300">👁️ {city.totalViews.toLocaleString('tr-TR')}</span>
+                                        <span className="text-blue-400">🖱️ {city.totalClicks.toLocaleString('tr-TR')}</span>
+                                        <Badge variant={city.clickThroughRate >= 5 ? 'success' : 'default'} size="sm">
+                                            {city.clickThroughRate}%
+                                        </Badge>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    </div>
-                </div>
-            </main>
-        </div>
-    );
-}
-
-function StatCard({ label, value, icon }: { label: string; value: number | string; icon: string }) {
-    return (
-        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-            <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg">{icon}</span>
-                <span className="text-slate-400 text-xs">{label}</span>
+                    </CardContent>
+                </Card>
             </div>
-            <div className="text-2xl font-bold text-white">{value}</div>
         </div>
     );
 }
