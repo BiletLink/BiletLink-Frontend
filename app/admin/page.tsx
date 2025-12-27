@@ -39,6 +39,19 @@ export default function AdminDashboard() {
     const [selectedSecondary, setSelectedSecondary] = useState<{ id: string, name: string } | null>(null);
     const [mergeLoading, setMergeLoading] = useState(false);
 
+    interface LatestEvent {
+        id: string;
+        name: string;
+        date: string;
+        city: string;
+        venueName: string;
+        minPrice: number;
+        platforms: string[];
+    }
+
+    // Latest events state
+    const [latestEvents, setLatestEvents] = useState<LatestEvent[]>([]);
+
     useEffect(() => {
         const token = localStorage.getItem('adminToken');
         if (!token) {
@@ -46,7 +59,21 @@ export default function AdminDashboard() {
             return;
         }
         fetchStats(token);
+        fetchLatestEvents(token);
     }, [router]);
+
+    const fetchLatestEvents = async (token: string) => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/admin/events?page=1&pageSize=5`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            setLatestEvents(data.items || []);
+        } catch (error) {
+            console.error('Failed to fetch latest events:', error);
+        }
+    };
 
     const fetchStats = async (token: string) => {
         try {
@@ -244,7 +271,7 @@ export default function AdminDashboard() {
                         <p className="text-slate-400 text-sm mb-4">
                             Toplam <span className="text-white font-semibold">{stats?.activeEvents?.toLocaleString('tr-TR') || 0}</span> aktif etkinlik
                         </p>
-                        <div className="space-y-4">
+                        <div className="space-y-5">
                             {/* Sadece Biletix */}
                             <div>
                                 <div className="flex items-center justify-between mb-1">
@@ -252,7 +279,12 @@ export default function AdminDashboard() {
                                         <span className="w-3 h-3 rounded-full bg-blue-500"></span>
                                         <span className="text-slate-300 text-sm">🎫 Sadece Biletix</span>
                                     </div>
-                                    <span className="text-white font-semibold">{stats?.biletixOnlyEvents?.toLocaleString('tr-TR') || 0}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-slate-400 text-xs">
+                                            %{stats?.activeEvents ? (((stats?.biletixOnlyEvents || 0) / stats.activeEvents) * 100).toFixed(1) : '0.0'}
+                                        </span>
+                                        <span className="text-white font-semibold">{stats?.biletixOnlyEvents?.toLocaleString('tr-TR') || 0}</span>
+                                    </div>
                                 </div>
                                 <div className="w-full bg-slate-700 rounded-full h-2.5">
                                     <div
@@ -268,7 +300,12 @@ export default function AdminDashboard() {
                                         <span className="w-3 h-3 rounded-full bg-purple-500"></span>
                                         <span className="text-slate-300 text-sm">🎟️ Sadece Bubilet</span>
                                     </div>
-                                    <span className="text-white font-semibold">{stats?.bubiletOnlyEvents?.toLocaleString('tr-TR') || 0}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-slate-400 text-xs">
+                                            %{stats?.activeEvents ? (((stats?.bubiletOnlyEvents || 0) / stats.activeEvents) * 100).toFixed(1) : '0.0'}
+                                        </span>
+                                        <span className="text-white font-semibold">{stats?.bubiletOnlyEvents?.toLocaleString('tr-TR') || 0}</span>
+                                    </div>
                                 </div>
                                 <div className="w-full bg-slate-700 rounded-full h-2.5">
                                     <div
@@ -284,7 +321,12 @@ export default function AdminDashboard() {
                                         <span className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></span>
                                         <span className="text-slate-300 text-sm">✨ Her İki Platform</span>
                                     </div>
-                                    <span className="text-white font-semibold">{stats?.sharedPlatformEvents?.toLocaleString('tr-TR') || 0}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-slate-400 text-xs">
+                                            %{stats?.activeEvents ? (((stats?.sharedPlatformEvents || 0) / stats.activeEvents) * 100).toFixed(1) : '0.0'}
+                                        </span>
+                                        <span className="text-white font-semibold">{stats?.sharedPlatformEvents?.toLocaleString('tr-TR') || 0}</span>
+                                    </div>
                                 </div>
                                 <div className="w-full bg-slate-700 rounded-full h-2.5">
                                     <div
@@ -294,14 +336,18 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
                         </div>
-                        {stats?.sharedPlatformEvents && stats.sharedPlatformEvents > 0 && (
+                        {stats?.sharedPlatformEvents && stats.sharedPlatformEvents > 0 ? (
                             <p className="text-emerald-400 text-sm mt-4 pt-3 border-t border-slate-700">
-                                ✅ <span className="font-semibold">{stats.sharedPlatformEvents.toLocaleString('tr-TR')}</span> etkinlik her iki platformda karşılaştırmalı sunuluyor
+                                ✅ <span className="font-semibold">{stats.sharedPlatformEvents.toLocaleString('tr-TR')}</span> etkinlik her iki platformda eşleşmiş durumda.
+                            </p>
+                        ) : (
+                            <p className="text-slate-500 text-xs mt-4 pt-3 border-t border-slate-700">
+                                ℹ️ Henüz platformlar arası eşleşen etkinlik bulunamadı.
                             </p>
                         )}
                     </div>
 
-                    {/* Kategori Dağılımı */}
+                    {/* Kategori Dağılımı - Same as before but just ensuring layout integiry */}
                     <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
                         <h3 className="text-lg font-semibold text-white mb-4">🎭 Kategori Dağılımı</h3>
                         <div className="flex flex-wrap gap-2">
@@ -321,9 +367,11 @@ export default function AdminDashboard() {
                             )}
                         </div>
                     </div>
+                </div>
 
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                     {/* Şehir Dağılımı - Top 5 */}
-                    <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                    <div className="lg:col-span-1 bg-slate-800 rounded-xl p-6 border border-slate-700">
                         <h3 className="text-lg font-semibold text-white mb-4">🏙️ En Çok Etkinlik - Şehirler</h3>
                         <div className="space-y-3">
                             {stats?.cityStats && Object.entries(stats.cityStats).map(([city, count], index) => (
@@ -345,10 +393,57 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
+                    {/* Latest Events Widget - New */}
+                    <div className="lg:col-span-2 bg-slate-800 rounded-xl p-6 border border-slate-700">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-white">🆕 Son Eklenen Etkinlikler</h3>
+                            <Link href="/admin/events" className="text-blue-400 text-sm hover:text-blue-300">Tümünü Gör →</Link>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="text-xs uppercase text-slate-400 bg-slate-700/30">
+                                    <tr>
+                                        <th className="px-4 py-2">Etkinlik</th>
+                                        <th className="px-4 py-2">Platform</th>
+                                        <th className="px-4 py-2">Tarih</th>
+                                        <th className="px-4 py-2 text-right">Fiyat</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-700">
+                                    {latestEvents.map((evt) => (
+                                        <tr key={evt.id} className="hover:bg-slate-700/20">
+                                            <td className="px-4 py-3">
+                                                <div className="text-white font-medium truncate max-w-[200px]">{evt.name}</div>
+                                                <div className="text-slate-500 text-xs">{evt.venueName}, {evt.city}</div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex gap-1">
+                                                    {evt.platforms && evt.platforms.includes('Biletix') && <span className="w-2 h-2 rounded-full bg-blue-500" title="Biletix"></span>}
+                                                    {evt.platforms && evt.platforms.includes('Bubilet') && <span className="w-2 h-2 rounded-full bg-purple-500" title="Bubilet"></span>}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-slate-300">
+                                                {new Date(evt.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-slate-300">
+                                                {evt.minPrice ? `${evt.minPrice}₺` : '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {latestEvents.length === 0 && (
+                                        <tr><td colSpan={4} className="px-4 py-4 text-center text-slate-500">Kayıt yok</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
                     {/* Analytics & Yaklaşan Etkinlikler */}
                     <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
                         <h3 className="text-lg font-semibold text-white mb-4">📊 Analytics Özet</h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="bg-slate-700/50 rounded-lg p-4 text-center">
                                 <p className="text-3xl font-bold text-green-400">{stats?.eventsThisWeek || 0}</p>
                                 <p className="text-slate-400 text-sm mt-1">Bu Hafta</p>
@@ -521,8 +616,8 @@ export default function AdminDashboard() {
                                 <div
                                     key={event.id}
                                     className={`flex items-center justify-between p-3 rounded-lg transition ${selectedPrimary?.id === event.id ? 'bg-blue-600/20 border border-blue-500' :
-                                            selectedSecondary?.id === event.id ? 'bg-purple-600/20 border border-purple-500' :
-                                                'bg-slate-700/50'
+                                        selectedSecondary?.id === event.id ? 'bg-purple-600/20 border border-purple-500' :
+                                            'bg-slate-700/50'
                                         }`}
                                 >
                                     <div className="flex-1">
