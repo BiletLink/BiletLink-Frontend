@@ -1,10 +1,31 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import EventCard from '@/components/event/EventCard';
-import { useCity } from '@/contexts/CityContext';
+import { useCity, cities } from '@/contexts/CityContext';
+
+// Helper function to normalize city name to URL slug
+function cityToSlug(cityName: string): string {
+    return cityName
+        .toLowerCase()
+        .replace(/ı/g, 'i')
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/İ/g, 'i')
+        .replace(/\s+/g, '-');
+}
+
+// Helper function to find city from slug
+function slugToCity(slug: string): { code: string; name: string } | null {
+    const normalizedSlug = slug.toLowerCase();
+    return cities.find(city => cityToSlug(city.name) === normalizedSlug) || null;
+}
 
 type EventStatus = 'Active' | 'Expired' | 'SoldOut' | 'Removed';
 
@@ -38,7 +59,9 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export default function Home() {
-    const { selectedCity } = useCity();
+    const router = useRouter();
+    const pathname = usePathname();
+    const { selectedCity, setSelectedCity } = useCity();
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -51,6 +74,30 @@ export default function Home() {
     const debouncedSearch = useDebounce(searchQuery, 300);
 
     const categories = ['Tümü', 'Konser', 'Tiyatro', 'Stand-Up', 'Spor', 'Festival', 'Müzikal', 'Opera', 'Bale', 'Gösteri'];
+
+    // Update URL when city changes
+    useEffect(() => {
+        if (selectedCity) {
+            const slug = cityToSlug(selectedCity.name);
+            if (pathname !== `/${slug}`) {
+                router.push(`/${slug}`, { scroll: false });
+            }
+        } else if (pathname !== '/') {
+            // If city is cleared and we're on a city page, go back to home
+            // But don't redirect if we're on /samsun etc. (initial load will handle this)
+        }
+    }, [selectedCity, pathname, router]);
+
+    // Handle initial URL - if URL has city slug, set the city
+    useEffect(() => {
+        if (pathname && pathname !== '/') {
+            const slug = pathname.substring(1); // Remove leading /
+            const city = slugToCity(slug);
+            if (city && (!selectedCity || selectedCity.name !== city.name)) {
+                setSelectedCity(city);
+            }
+        }
+    }, []); // Only run on mount
 
     const fetchEvents = useCallback(async (reset: boolean = false) => {
         try {
