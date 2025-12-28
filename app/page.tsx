@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import EventCard from '@/components/event/EventCard';
@@ -60,7 +60,6 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function Home() {
     const router = useRouter();
-    const pathname = usePathname();
     const { selectedCity, setSelectedCity } = useCity();
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
@@ -75,17 +74,34 @@ export default function Home() {
 
     const categories = ['Tümü', 'Konser', 'Tiyatro', 'Stand-Up', 'Spor', 'Festival', 'Müzikal', 'Opera', 'Bale', 'Gösteri'];
 
-    // Update URL when city changes
+    // Update URL query param when city changes
     useEffect(() => {
         if (selectedCity) {
             const slug = cityToSlug(selectedCity.name);
-            const expectedPath = `/sehir/${slug}`;
-            if (pathname !== expectedPath && pathname === '/') {
-                // Only update URL if we're on homepage (not on other pages)
-                router.push(expectedPath, { scroll: false });
+            const currentParams = new URLSearchParams(window.location.search);
+            if (currentParams.get('city') !== slug) {
+                router.push(`/?city=${slug}`, { scroll: false });
+            }
+        } else {
+            // If city is cleared and URL has city param, remove it
+            const currentParams = new URLSearchParams(window.location.search);
+            if (currentParams.has('city')) {
+                router.push('/', { scroll: false });
             }
         }
-    }, [selectedCity, pathname, router]);
+    }, [selectedCity, router]);
+
+    // Handle initial URL - if URL has city query param, set the city
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const citySlug = params.get('city');
+        if (citySlug) {
+            const city = slugToCity(citySlug);
+            if (city && (!selectedCity || selectedCity.name !== city.name)) {
+                setSelectedCity(city);
+            }
+        }
+    }, []); // Only run on mount
 
 
     const fetchEvents = useCallback(async (reset: boolean = false) => {
