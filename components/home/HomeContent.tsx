@@ -5,27 +5,8 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import EventCard from '@/components/event/EventCard';
-import { useCity, cities } from '@/contexts/CityContext';
-
-// Helper function to normalize city name to URL slug
-function cityToSlug(cityName: string): string {
-    return cityName
-        .toLowerCase()
-        .replace(/ı/g, 'i')
-        .replace(/ğ/g, 'g')
-        .replace(/ü/g, 'u')
-        .replace(/ş/g, 's')
-        .replace(/ö/g, 'o')
-        .replace(/ç/g, 'c')
-        .replace(/İ/g, 'i')
-        .replace(/\s+/g, '-');
-}
-
-// Helper function to find city from slug
-export function slugToCity(slug: string): { code: string; name: string } | null {
-    const normalizedSlug = slug.toLowerCase();
-    return cities.find(city => cityToSlug(city.name) === normalizedSlug) || null;
-}
+import { useCity } from '@/contexts/CityContext';
+import { cityToSlug, slugToCity } from '@/utils/cityUtils';
 
 type EventStatus = 'Active' | 'Expired' | 'SoldOut' | 'Removed';
 

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import EventClient from './EventClient';
-import { slugToCity } from '@/components/home/HomeContent';
+import { slugToCity } from '@/utils/cityUtils';
 
 interface PageParams {
     mainSlug: string;
@@ -33,7 +33,10 @@ function parseParams(params: PageParams) {
 export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
     const { category, city, slug } = parseParams(params);
 
-    const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+    // Use internal URL for SSG/SSR valid within Vercel/Docker network if possible, 
+    // or public URL. Since Vercel doesn't have local network access to your VPS, 
+    // it MUST use the public HTTPS URL.
+    const apiUrl = 'https://api.biletlink.co';
     const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
 
     try {
