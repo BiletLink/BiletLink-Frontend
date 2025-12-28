@@ -1,6 +1,7 @@
 'use client';
 
-import HomeContent, { slugToCity } from '@/components/home/HomeContent';
+import HomeContent from '@/components/home/HomeContent';
+import { slugToCity } from '@/utils/cityUtils';
 
 interface PageProps {
     params: { mainSlug: string };
