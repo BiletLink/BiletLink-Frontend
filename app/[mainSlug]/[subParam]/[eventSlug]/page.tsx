@@ -1,12 +1,37 @@
 import { Metadata } from 'next';
 import EventClient from './EventClient';
+import { slugToCity } from '@/components/home/HomeContent';
 
-// Valid categories for routing
-const validCategories = ['konser', 'tiyatro', 'festival', 'stand-up', 'sanat', 'cocuk-aile', 'etkinlik', 'muzikal', 'sahne-sanatlari'];
+interface PageParams {
+    mainSlug: string;
+    subParam: string;
+    eventSlug: string;
+}
+
+// Helper to determine which param is city and which is category
+function parseParams(params: PageParams) {
+    const { mainSlug, subParam, eventSlug } = params;
+
+    // Decode URI components
+    const decodedMain = decodeURIComponent(mainSlug);
+    const decodedSub = decodeURIComponent(subParam);
+    const decodedEvent = decodeURIComponent(eventSlug);
+
+    const cityObj = slugToCity(decodedMain);
+    if (cityObj) {
+        // Pattern: /samsun/konser/etkinlik-slug
+        return { city: decodedMain, category: decodedSub, slug: decodedEvent };
+    } else {
+        // Pattern: /konser/samsun/etkinlik-slug
+        // If mainSlug is NOT a city, we assume it's a category.
+        // And subParam is city.
+        return { category: decodedMain, city: decodedSub, slug: decodedEvent };
+    }
+}
 
 // SEO Metadata Generator
-export async function generateMetadata({ params }: { params: { category: string; city: string; slug: string } }): Promise<Metadata> {
-    const { category, city, slug } = params;
+export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
+    const { category, city, slug } = parseParams(params);
 
     const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
     const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
@@ -38,7 +63,8 @@ export async function generateMetadata({ params }: { params: { category: string;
         const title = `${event.name} ${suffix} | ${event.venue?.name || ''} | BiletLink`;
         const description = `${event.date ? new Date(event.date).toLocaleDateString('tr-TR') : ''} tarihinde ${event.venue?.name || ''} mekanında gerçekleşecek ${event.name} etkinliği için biletler BiletLink'te!`;
 
-        const canonicalUrl = `https://biletlink.co/${category}/${city}/${slug}`;
+        // Prefer /city/category/slug as canonical
+        const canonicalUrl = `https://biletlink.co/${city}/${category}/${slug}`;
 
         return {
             title,
@@ -69,8 +95,9 @@ export async function generateMetadata({ params }: { params: { category: string;
     }
 }
 
-export default function EventPage({ params }: { params: { category: string; city: string; slug: string } }) {
-    return <EventClient />;
+export default function EventPage({ params }: { params: PageParams }) {
+    const { category, city, slug } = parseParams(params);
+    return <EventClient city={city} category={category} slug={slug} />;
 }
 
 // Generate static paths for common categories

@@ -41,14 +41,20 @@ interface EventDetail {
     venue?: { id: string; name: string; slug?: string; city: string; address?: string; };
 }
 
-export default function EventBySeoUrl() {
-    const params = useParams();
+interface EventBySeoUrlProps {
+    city: string;
+    category: string;
+    slug: string;
+}
+
+export default function EventBySeoUrl({ city, category, slug }: EventBySeoUrlProps) {
+    // const params = useParams(); // Removed
     const router = useRouter();
     const [event, setEvent] = useState<EventDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const { category, city, slug } = params as { category: string; city: string; slug: string };
+    // const { category, city, slug } = params as { category: string; city: string; slug: string }; // Removed
 
     useEffect(() => {
         async function fetchEvent() {
