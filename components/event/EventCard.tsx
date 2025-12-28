@@ -6,6 +6,7 @@ type EventStatus = 'Active' | 'Expired' | 'SoldOut' | 'Removed';
 interface EventCardProps {
     id: string;
     name: string;
+    slug?: string | null;
     description?: string | null;
     date: string;
     imageUrl?: string | null;
@@ -15,7 +16,46 @@ interface EventCardProps {
     status?: EventStatus;
 }
 
-export default function EventCard({ id, name, description, date, imageUrl, category, minPrice, venueCity, status = 'Active' }: EventCardProps) {
+// Helper to generate SEO-friendly URL
+function getEventUrl(props: EventCardProps): string {
+    const { id, name, slug, date, category, venueCity } = props;
+
+    // If we have all needed data, generate SEO URL
+    if (category && venueCity && date) {
+        // Normalize category for URL
+        const categorySlug = category.toLowerCase()
+            .replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u')
+            .replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c')
+            .replace(/\s+/g, '-').replace(/\//g, '-');
+
+        // Normalize city for URL
+        const citySlug = venueCity.toLowerCase()
+            .replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u')
+            .replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c')
+            .replace(/\s+/g, '-');
+
+        // Generate slug from name if not provided
+        const titleSlug = (slug || name).toLowerCase()
+            .replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u')
+            .replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c')
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-')
+            .trim();
+
+        // Get day and month from date
+        const eventDate = new Date(date);
+        const day = eventDate.getDate().toString().padStart(2, '0');
+        const month = (eventDate.getMonth() + 1).toString().padStart(2, '0');
+
+        return `/${categorySlug}/${citySlug}/${titleSlug}-${day}-${month}`;
+    }
+
+    // Fallback to old URL format
+    return `/event/${id}`;
+}
+
+export default function EventCard({ id, name, slug, description, date, imageUrl, category, minPrice, venueCity, status = 'Active' }: EventCardProps) {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.biletlink.co';
     const [imageError, setImageError] = useState(false);
 
@@ -108,9 +148,10 @@ export default function EventCard({ id, name, description, date, imageUrl, categ
 
     const imageSrc = getImageSrc();
     const showImage = imageSrc && !imageError;
+    const eventUrl = getEventUrl({ id, name, slug, date, category, venueCity });
 
     return (
-        <Link href={`/event/${id}`} className="group">
+        <Link href={eventUrl} className="group">
             <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden ${status === 'Expired' ? 'opacity-60' : ''}`}>
                 <div className="relative aspect-video bg-gradient-to-br from-blue-500 to-purple-500 overflow-hidden">
                     {/* Status Badge */}
