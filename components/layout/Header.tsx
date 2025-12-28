@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
-import { useCity, cities } from '@/contexts/CityContext';
+import { useCity } from '@/contexts/CityContext';
+import { cities } from '@/utils/cityUtils';
 
 export default function Header() {
     const { selectedCity, setSelectedCity } = useCity();
