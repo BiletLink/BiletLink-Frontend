@@ -4,22 +4,47 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import EventDetailClient from '../../../event/[id]/EventDetailClient';
 
-interface Event {
+interface Session {
+    id: string;
+    sessionDate: string;
+    venueName?: string;
+    minPrice?: number;
+    performanceUrl?: string;
+    isAvailable: boolean;
+}
+
+interface TicketOption {
+    platform: string;
+    platformTitle: string;
+    eventUrl?: string;
+    sourceLogo?: string;
+    brandColor?: string;
+    isVip: boolean;
+    isDinnerIncluded: boolean;
+    isAvailable: boolean;
+    prices: { price: number; currency: string; url?: string; affiliateUrl?: string; }[];
+    sessions: Session[];
+}
+
+interface EventDetail {
     id: string;
     name: string;
-    slug: string;
+    slug?: string;
+    description?: string;
     date: string;
-    category: string;
-    venue?: {
-        city: string;
-        name: string;
-    };
+    imageUrl?: string | null;
+    category?: string;
+    minPrice?: number | null;
+    viewCount?: number;
+    ticketOptions: TicketOption[];
+    artist?: { id: string; name: string; slug?: string; imageUrl?: string; };
+    venue?: { id: string; name: string; slug?: string; city: string; address?: string; };
 }
 
 export default function EventBySeoUrl() {
     const params = useParams();
     const router = useRouter();
-    const [event, setEvent] = useState<Event | null>(null);
+    const [event, setEvent] = useState<EventDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
