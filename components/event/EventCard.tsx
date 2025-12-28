@@ -48,7 +48,7 @@ function getEventUrl(props: EventCardProps): string {
         const day = eventDate.getDate().toString().padStart(2, '0');
         const month = (eventDate.getMonth() + 1).toString().padStart(2, '0');
 
-        return `/${categorySlug}/${citySlug}/${titleSlug}-${day}-${month}`;
+        return `/${citySlug}/${categorySlug}/${titleSlug}-${day}-${month}`;
     }
 
     // Fallback to old URL format
