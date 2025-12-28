@@ -79,25 +79,14 @@ export default function Home() {
     useEffect(() => {
         if (selectedCity) {
             const slug = cityToSlug(selectedCity.name);
-            if (pathname !== `/${slug}`) {
-                router.push(`/${slug}`, { scroll: false });
+            const expectedPath = `/sehir/${slug}`;
+            if (pathname !== expectedPath && pathname === '/') {
+                // Only update URL if we're on homepage (not on other pages)
+                router.push(expectedPath, { scroll: false });
             }
-        } else if (pathname !== '/') {
-            // If city is cleared and we're on a city page, go back to home
-            // But don't redirect if we're on /samsun etc. (initial load will handle this)
         }
     }, [selectedCity, pathname, router]);
 
-    // Handle initial URL - if URL has city slug, set the city
-    useEffect(() => {
-        if (pathname && pathname !== '/') {
-            const slug = pathname.substring(1); // Remove leading /
-            const city = slugToCity(slug);
-            if (city && (!selectedCity || selectedCity.name !== city.name)) {
-                setSelectedCity(city);
-            }
-        }
-    }, []); // Only run on mount
 
     const fetchEvents = useCallback(async (reset: boolean = false) => {
         try {
