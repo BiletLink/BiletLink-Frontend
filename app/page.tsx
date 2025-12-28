@@ -63,7 +63,6 @@ export default function Home() {
             }
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.biletlink.co';
-            console.log('Fetching events from:', apiUrl); // Debug log
             const params = new URLSearchParams({
                 limit: LIMIT.toString(),
                 offset: currentOffset.toString(),
@@ -81,16 +80,21 @@ export default function Home() {
                 params.append('city', selectedCity.name);
             }
 
-            // Cache busting
-            params.append('_t', Date.now().toString());
+            // Add timeout to prevent hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
             const response = await fetch(`${apiUrl}/api/master-events?${params}`, {
-                cache: 'no-store',
-                headers: {
-                    'Pragma': 'no-cache',
-                    'Cache-Control': 'no-cache'
-                }
+                signal: controller.signal,
+                next: { revalidate: 60 } // Cache for 60 seconds
             });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
             const data = await response.json();
 
             if (reset) {
