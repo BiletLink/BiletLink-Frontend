@@ -81,6 +81,13 @@ export default function EventCard({
 
     const discountPercent = calculateDiscount(platformPrices);
 
+    // Calculate effective price: use minPrice if available, otherwise get min from platformPrices
+    const effectivePrice = minPrice ?? (
+        platformPrices && Object.keys(platformPrices).length > 0
+            ? Math.min(...Object.values(platformPrices))
+            : null
+    );
+
     const formatDate = (dateString: string) => {
         try {
             const date = new Date(dateString);
@@ -97,7 +104,7 @@ export default function EventCard({
     };
 
     const formatPrice = (price?: number | null) => {
-        if (price === null || price === undefined) return 'Fiyat bilgisi yok';
+        if (price === null || price === undefined) return null;
         return price > 0 ? `${price.toFixed(0)}₺'den` : 'Ücretsiz';
     };
 
@@ -250,9 +257,15 @@ export default function EventCard({
                                     -%{discountPercent}
                                 </span>
                             )}
-                            <span className="text-blue-600 font-bold text-lg">
-                                {formatPrice(minPrice)}
-                            </span>
+                            {effectivePrice !== null ? (
+                                <span className="text-blue-600 font-bold text-lg">
+                                    {formatPrice(effectivePrice)}
+                                </span>
+                            ) : (
+                                <span className="text-slate-400 text-sm">
+                                    Fiyat için tıklayın
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
