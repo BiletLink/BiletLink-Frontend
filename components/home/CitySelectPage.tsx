@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useCity } from '@/contexts/CityContext';
+import PartyLights from '@/components/ui/PartyLights';
 
 // Top 5 most popular cities with curated images
 const TOP_CITIES = [
@@ -36,7 +37,7 @@ export default function CitySelectPage() {
     };
 
     return (
-        <div className="min-h-screen bg-biletlink party-lights">
+        <PartyLights className="min-h-screen">
             {/* Content */}
             <div className="relative z-10 min-h-screen flex flex-col">
                 {/* Header */}
@@ -115,8 +116,8 @@ export default function CitySelectPage() {
                             <button
                                 key={cat}
                                 className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all ${i === 0
-                                        ? 'bg-[#5EB0EF] text-white shadow-lg shadow-[#5EB0EF]/30'
-                                        : 'glass-dark text-white/70 hover:text-white hover:bg-white/10'
+                                    ? 'bg-[#5EB0EF] text-white shadow-lg shadow-[#5EB0EF]/30'
+                                    : 'glass-dark text-white/70 hover:text-white hover:bg-white/10'
                                     }`}
                             >
                                 {cat}
@@ -208,6 +209,6 @@ export default function CitySelectPage() {
                     © 2025 BiletLink. Tüm hakları saklıdır.
                 </footer>
             </div>
-        </div>
+        </PartyLights>
     );
 }

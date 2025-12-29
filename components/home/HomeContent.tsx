@@ -7,6 +7,8 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import EventCard from '@/components/event/EventCard';
 import CitySelectPage from '@/components/home/CitySelectPage';
+import PartyLights from '@/components/ui/PartyLights';
+import HorizontalScroll from '@/components/ui/HorizontalScroll';
 import { useCity } from '@/contexts/CityContext';
 import { cityToSlug, slugToCity } from '@/utils/cityUtils';
 
@@ -227,8 +229,8 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
                                 key={cat}
                                 onClick={() => setActiveCategory(cat)}
                                 className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all ${activeCategory === cat
-                                        ? 'bg-[#5EB0EF] text-white shadow-lg shadow-[#5EB0EF]/30'
-                                        : 'glass-dark text-white/70 hover:text-white hover:bg-white/10'
+                                    ? 'bg-[#5EB0EF] text-white shadow-lg shadow-[#5EB0EF]/30'
+                                    : 'glass-dark text-white/70 hover:text-white hover:bg-white/10'
                                     }`}
                             >
                                 {cat}
@@ -256,46 +258,36 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
                     <>
                         {/* Bu Hafta Section - Horizontal Scroll */}
                         {thisWeekEvents.length > 0 && (
-                            <section className="fade-in">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                                        <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#5EB0EF] to-[#A78BFA] flex items-center justify-center text-white text-lg">📅</span>
-                                        Bu Hafta
-                                    </h2>
-                                    <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                                        {thisWeekEvents.length} etkinlik
-                                    </span>
-                                </div>
-                                <div className="scroll-x">
-                                    {thisWeekEvents.map((event) => (
-                                        <div key={event.id} className="w-[280px] sm:w-[320px]">
-                                            <EventCard {...event} />
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
+                            <HorizontalScroll
+                                title="Bu Hafta"
+                                icon="📅"
+                                itemCount={thisWeekEvents.length}
+                            >
+                                {thisWeekEvents.map((event) => (
+                                    <div key={event.id} className="w-[280px] sm:w-[320px]" style={{ scrollSnapAlign: 'start' }}>
+                                        <EventCard {...event} />
+                                    </div>
+                                ))}
+                            </HorizontalScroll>
                         )}
 
                         {/* Avantajlı Section */}
                         {advantageEvents.length > 0 && (
-                            <section className="fade-in" style={{ animationDelay: '0.1s' }}>
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                                        <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#22D3EE] flex items-center justify-center text-white text-lg">💰</span>
-                                        Avantajlı Fırsatlar
-                                        <span className="ml-2 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                                            Fiyat Karşılaştırmalı
-                                        </span>
-                                    </h2>
-                                </div>
-                                <div className="scroll-x">
-                                    {advantageEvents.map((event) => (
-                                        <div key={event.id} className="w-[280px] sm:w-[320px]">
-                                            <EventCard {...event} />
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
+                            <HorizontalScroll
+                                title="Avantajlı Fırsatlar"
+                                icon="💰"
+                                badge={
+                                    <span className="ml-2 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                                        Fiyat Karşılaştırmalı
+                                    </span>
+                                }
+                            >
+                                {advantageEvents.map((event) => (
+                                    <div key={event.id} className="w-[280px] sm:w-[320px]" style={{ scrollSnapAlign: 'start' }}>
+                                        <EventCard {...event} />
+                                    </div>
+                                ))}
+                            </HorizontalScroll>
                         )}
 
                         {/* Popüler Section - Grid */}
