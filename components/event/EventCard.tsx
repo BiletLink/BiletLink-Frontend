@@ -131,6 +131,7 @@ export default function EventCard({
     const eventUrl = getEventUrl({ id, name, slug, date, category, venueCity });
     const dateInfo = formatDate(date);
     const catStyle = getCategoryStyle(category);
+    const isSoldOut = status === 'SoldOut';
 
     return (
         <Link href={eventUrl} className="group block h-full">
@@ -138,7 +139,7 @@ export default function EventCard({
                 {/* Image Container */}
                 <div className="relative aspect-[16/10] bg-gradient-to-br from-[#5EB0EF] to-[#A78BFA] overflow-hidden">
                     {/* Discount Badge */}
-                    {discountPercent && discountPercent > 0 && (
+                    {discountPercent && discountPercent > 0 && !isSoldOut && (
                         <div className="absolute top-3 right-3 z-10">
                             <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-[#10B981] to-[#22D3EE] text-white shadow-lg">
                                 <span>💰</span> %{discountPercent} Avantaj
@@ -146,10 +147,10 @@ export default function EventCard({
                         </div>
                     )}
 
-                    {/* Status Badge */}
-                    {status === 'SoldOut' && (
+                    {/* Sold Out Badge */}
+                    {isSoldOut && (
                         <div className="absolute top-3 right-3 z-10">
-                            <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-red-500 text-white">
+                            <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-red-500 text-white shadow-lg">
                                 Tükendi
                             </span>
                         </div>
@@ -162,7 +163,7 @@ export default function EventCard({
                             alt={name}
                             referrerPolicy="no-referrer"
                             onError={() => setImageError(true)}
-                            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${status === 'Expired' ? 'grayscale' : ''}`}
+                            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${status === 'Expired' || isSoldOut ? 'grayscale' : ''}`}
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -189,8 +190,15 @@ export default function EventCard({
                         </div>
                     )}
 
+                    {/* BiletLink Watermark */}
+                    <div className="absolute bottom-3 right-3 z-10">
+                        <span className="text-white/30 text-xs font-bold tracking-wider">
+                            BiletLink
+                        </span>
+                    </div>
+
                     {/* Gradient Overlay */}
-                    <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+                    <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
                 </div>
 
                 {/* Content */}
@@ -227,19 +235,27 @@ export default function EventCard({
                             )}
                         </div>
                         <div className="flex items-center gap-2">
-                            {discountPercent && discountPercent > 0 && (
-                                <span className="text-xs font-semibold text-green-600">
-                                    -%{discountPercent}
-                                </span>
-                            )}
-                            {effectivePrice !== null ? (
-                                <span className="text-lg font-bold text-[#5EB0EF]">
-                                    {formatPrice(effectivePrice)}
+                            {isSoldOut ? (
+                                <span className="text-sm font-semibold text-red-500">
+                                    Tükendi
                                 </span>
                             ) : (
-                                <span className="text-sm text-slate-400">
-                                    Fiyat için tıkla
-                                </span>
+                                <>
+                                    {discountPercent && discountPercent > 0 && (
+                                        <span className="text-xs font-semibold text-green-600">
+                                            -%{discountPercent}
+                                        </span>
+                                    )}
+                                    {effectivePrice !== null ? (
+                                        <span className="text-lg font-bold text-[#5EB0EF]">
+                                            {formatPrice(effectivePrice)}
+                                        </span>
+                                    ) : (
+                                        <span className="text-sm text-slate-500">
+                                            Detaylar için tıkla
+                                        </span>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>

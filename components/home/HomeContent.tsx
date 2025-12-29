@@ -9,6 +9,7 @@ import EventCard from '@/components/event/EventCard';
 import CitySelectPage from '@/components/home/CitySelectPage';
 import PartyLights from '@/components/ui/PartyLights';
 import HorizontalScroll from '@/components/ui/HorizontalScroll';
+import AnnouncementBanner from '@/components/ui/AnnouncementBanner';
 import { useCity } from '@/contexts/CityContext';
 import { cityToSlug, slugToCity } from '@/utils/cityUtils';
 
