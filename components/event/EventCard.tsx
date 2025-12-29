@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -14,6 +16,8 @@ interface EventCardProps {
     minPrice?: number | null;
     venueCity?: string | null;
     status?: EventStatus;
+    platforms?: string[];
+    platformPrices?: Record<string, number>; // Platform name -> min price
 }
 
 // Helper to generate SEO-friendly URL
@@ -55,9 +59,27 @@ function getEventUrl(props: EventCardProps): string {
     return `/event/${id}`;
 }
 
-export default function EventCard({ id, name, slug, description, date, imageUrl, category, minPrice, venueCity, status = 'Active' }: EventCardProps) {
+// Calculate discount percentage between platforms
+function calculateDiscount(platformPrices?: Record<string, number>): number | null {
+    if (!platformPrices || Object.keys(platformPrices).length < 2) return null;
+
+    const prices = Object.values(platformPrices);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+
+    if (minPrice >= maxPrice || maxPrice === 0) return null;
+
+    const discountPercent = Math.round(((maxPrice - minPrice) / maxPrice) * 100);
+    return discountPercent > 0 ? discountPercent : null;
+}
+
+export default function EventCard({
+    id, name, slug, description, date, imageUrl, category, minPrice, venueCity, status = 'Active', platforms, platformPrices
+}: EventCardProps) {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.biletlink.co';
     const [imageError, setImageError] = useState(false);
+
+    const discountPercent = calculateDiscount(platformPrices);
 
     const formatDate = (dateString: string) => {
         try {
@@ -75,8 +97,8 @@ export default function EventCard({ id, name, slug, description, date, imageUrl,
     };
 
     const formatPrice = (price?: number | null) => {
-        if (price === null || price === undefined) return '';
-        return price > 0 ? `${price.toFixed(0)}₺` : 'Ücretsiz';
+        if (price === null || price === undefined) return 'Fiyat bilgisi yok';
+        return price > 0 ? `${price.toFixed(0)}₺'den` : 'Ücretsiz';
     };
 
     const getImageSrc = () => {
@@ -157,6 +179,15 @@ export default function EventCard({ id, name, slug, description, date, imageUrl,
                     {/* Status Badge */}
                     {getStatusBadge()}
 
+                    {/* Discount Badge */}
+                    {discountPercent && discountPercent > 0 && (
+                        <div className="absolute top-3 right-3 z-10">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-500 text-white shadow-lg">
+                                💰 %{discountPercent} Avantaj
+                            </span>
+                        </div>
+                    )}
+
                     {showImage ? (
                         <img
                             src={imageSrc}
@@ -175,6 +206,15 @@ export default function EventCard({ id, name, slug, description, date, imageUrl,
                         <div className="absolute top-3 left-3">
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getCategoryColor(category)}`}>
                                 {category}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Platform count badge */}
+                    {platforms && platforms.length > 1 && (
+                        <div className="absolute bottom-3 left-3">
+                            <span className="px-2 py-1 bg-black/50 backdrop-blur-sm rounded-lg text-white text-xs font-medium">
+                                {platforms.length} platform
                             </span>
                         </div>
                     )}
@@ -203,11 +243,17 @@ export default function EventCard({ id, name, slug, description, date, imageUrl,
                             </svg>
                             {venueCity || 'İstanbul'}
                         </div>
-                        {minPrice != null && (
-                            <div className="text-blue-600 font-bold text-lg">
+                        {/* Always show price */}
+                        <div className="flex items-center gap-2">
+                            {discountPercent && discountPercent > 0 && (
+                                <span className="text-green-600 text-xs font-semibold">
+                                    -%{discountPercent}
+                                </span>
+                            )}
+                            <span className="text-blue-600 font-bold text-lg">
                                 {formatPrice(minPrice)}
-                            </div>
-                        )}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>

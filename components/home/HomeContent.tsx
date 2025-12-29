@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import EventCard from '@/components/event/EventCard';
+import CitySelectPage from '@/components/home/CitySelectPage';
 import { useCity } from '@/contexts/CityContext';
 import { cityToSlug, slugToCity } from '@/utils/cityUtils';
 
@@ -13,6 +14,7 @@ type EventStatus = 'Active' | 'Expired' | 'SoldOut' | 'Removed';
 interface Event {
     id: string;
     name: string;
+    slug?: string;
     description: string;
     date: string;
     imageUrl?: string | null;
@@ -20,6 +22,7 @@ interface Event {
     minPrice: number;
     venueCity?: string | null;
     status?: EventStatus;
+    platforms?: string[];
 }
 
 // Debounce hook
@@ -46,21 +49,17 @@ interface HomeContentProps {
 
 export default function HomeContent({ initialCategory = 'Tümü', initialCitySlug }: HomeContentProps) {
     const router = useRouter();
-    const { selectedCity, setSelectedCity } = useCity();
+    const { selectedCity, setSelectedCity, isLoading, hasEverSelectedCity } = useCity();
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [activeCategory, setActiveCategory] = useState(initialCategory);
     const [searchQuery, setSearchQuery] = useState('');
-    const [offset, setOffset] = useState(0);
-    const [hasMore, setHasMore] = useState(true);
-    const LIMIT = 20;
 
     const debouncedSearch = useDebounce(searchQuery, 300);
 
     const categories = ['Tümü', 'Konser', 'Tiyatro', 'Stand-Up', 'Spor', 'Festival', 'Müzikal', 'Opera', 'Bale', 'Gösteri'];
 
-    // Handle initial city from props
+    // Handle initial city from props (URL-based)
     useEffect(() => {
         if (initialCitySlug) {
             const city = slugToCity(initialCitySlug);
@@ -70,50 +69,29 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
         }
     }, [initialCitySlug, setSelectedCity]);
 
-    // Update URL when city changes (path-based)
+    // Update URL when city changes
     useEffect(() => {
         if (selectedCity) {
             const slug = cityToSlug(selectedCity.name);
-            // If current URL slug matches selected city, do nothing
-            // (handled by parent or initial load)
-            // But if we are on Homepage or another city page, we should navigate
-
-            // Check if we are already on the correct path to avoid loops
-            // Using window.location.pathname is safer here than router properties for absolute path check
             const currentPath = window.location.pathname;
             const targetPath = `/${slug}`;
 
             if (currentPath !== targetPath && !currentPath.includes('/etkinlik/') && !currentPath.includes('/mekan/')) {
                 router.push(targetPath, { scroll: false });
             }
-        } else {
-            // If city is cleared and we are on a city path (e.g. /samsun), go home
-            // Check if current path is a city slug
-            const currentPath = window.location.pathname;
-            if (currentPath !== '/' && !currentPath.includes('/etkinlik/') && !currentPath.includes('/mekan/')) {
-                // Check if the current path corresponds to a city
-                const potentialSlug = currentPath.substring(1);
-                if (slugToCity(potentialSlug)) {
-                    router.push('/');
-                }
-            }
         }
     }, [selectedCity, router]);
 
-    const fetchEvents = useCallback(async (reset: boolean = false) => {
-        try {
-            const currentOffset = reset ? 0 : offset;
-            if (reset) {
-                setLoading(true);
-                setOffset(0);
-            } else {
-                setLoadingMore(true);
-            }
+    // Fetch events
+    const fetchEvents = useCallback(async () => {
+        if (!selectedCity) return; // Don't fetch if no city selected
 
+        try {
+            setLoading(true);
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.biletlink.co';
             const params = new URLSearchParams({
-                limit: LIMIT.toString(),
-                offset: currentOffset.toString(),
+                limit: '50',
+                offset: '0',
             });
 
             if (debouncedSearch) {
@@ -128,13 +106,12 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
                 params.append('city', selectedCity.name);
             }
 
-            // Add timeout to prevent hanging requests
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
 
             const response = await fetch(`${apiUrl}/api/master-events?${params}`, {
                 signal: controller.signal,
-                next: { revalidate: 60 } // Cache for 60 seconds
+                next: { revalidate: 60 }
             });
 
             clearTimeout(timeoutId);
@@ -144,72 +121,86 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
             }
 
             const data = await response.json();
-
-            if (reset) {
-                setEvents(data);
-            } else {
-                setEvents(prev => [...prev, ...data]);
-            }
-
-            setHasMore(data.length === LIMIT);
+            setEvents(data);
         } catch (error) {
             console.error('Failed to fetch events:', error);
         } finally {
             setLoading(false);
-            setLoadingMore(false);
         }
-    }, [offset, debouncedSearch, activeCategory, selectedCity]);
-
-    // Initial load and search/category/city change
-    useEffect(() => {
-        fetchEvents(true);
     }, [debouncedSearch, activeCategory, selectedCity]);
 
-    const loadMore = () => {
-        setOffset(prev => prev + LIMIT);
-    };
-
-    // Load more when offset changes (but not on initial load)
+    // Fetch when dependencies change
     useEffect(() => {
-        if (offset > 0) {
-            fetchEvents(false);
+        if (selectedCity) {
+            fetchEvents();
         }
-    }, [offset]);
+    }, [debouncedSearch, activeCategory, selectedCity, fetchEvents]);
 
+    // Categorize events for sections
     const filteredEvents = events.filter(e => e.status !== 'Removed');
 
+    // "Bu Hafta" - Events within next 7 days
+    const thisWeekEvents = filteredEvents.filter(e => {
+        const eventDate = new Date(e.date);
+        const now = new Date();
+        const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        return eventDate >= now && eventDate <= weekLater;
+    }).slice(0, 8);
+
+    // "Avantajlı" - Events with multiple platforms (price comparison available)
+    const advantageEvents = filteredEvents.filter(e =>
+        e.platforms && e.platforms.length > 1
+    ).slice(0, 8);
+
+    // "Popüler" - Just the first 8 as placeholder (would need API support for actual popularity)
+    const popularEvents = filteredEvents.slice(0, 8);
+
+    // Show city select page for first-time visitors
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-900">
+                <div className="text-center">
+                    <div className="inline-block w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                    <p className="mt-4 text-white/70">Yükleniyor...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!hasEverSelectedCity && !initialCitySlug) {
+        return <CitySelectPage />;
+    }
+
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-slate-50">
             <Header />
 
-            {/* Hero Section */}
-            <section className="relative bg-slate-900 py-24 sm:py-32 overflow-hidden">
-                {/* Abstract Glow Effects */}
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500 rounded-full blur-3xl opacity-20"></div>
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
+            {/* Compact Hero Section */}
+            <section className="relative bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 py-12 overflow-hidden">
+                {/* Background Effects */}
+                <div className="absolute top-0 left-1/4 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20"></div>
+                <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
 
-                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white mb-6">
-                        Hayalindeki{' '}
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                            Etkinlik
-                        </span>
-                        <br />
-                        Bir Tık Uzağında
-                    </h1>
-                    <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto text-balance">
-                        Konserler, tiyatrolar, spor etkinlikleri ve daha fazlası. Türkiye'nin en kapsamlı etkinlik platformu.
-                    </p>
+                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    {/* Title & City */}
+                    <div className="text-center mb-8">
+                        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
+                            {selectedCity ? `${selectedCity.name}'daki Etkinlikler` : 'Etkinlikler'}
+                        </h1>
+                        <p className="text-white/70">
+                            Konserler, tiyatrolar, spor etkinlikleri ve daha fazlası
+                        </p>
+                    </div>
 
                     {/* Search Box */}
-                    <div className="max-w-xl mx-auto mb-10">
+                    <div className="max-w-xl mx-auto mb-6">
                         <div className="relative">
                             <input
                                 type="text"
                                 placeholder="Etkinlik, sanatçı veya mekan ara..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full px-6 py-4 pl-14 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/20 transition-all"
+                                className="w-full px-6 py-4 pl-14 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/20 transition-all"
                             />
                             <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -243,17 +234,8 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
                 </div>
             </section>
 
-            {/* Events Grid */}
-            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-                <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-3xl font-bold text-slate-900">
-                        {activeCategory === 'Tümü' ? 'Tüm Etkinlikler' : activeCategory}
-                        {selectedCity && ` - ${selectedCity.name}`}
-                    </h2>
-                    <p className="text-slate-500">
-                        {filteredEvents.length} etkinlik bulundu
-                    </p>
-                </div>
+            {/* Event Sections */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
 
                 {loading ? (
                     <div className="text-center py-20">
@@ -267,37 +249,74 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
                     </div>
                 ) : (
                     <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {filteredEvents.map((event) => (
-                                <EventCard key={event.id} {...event} />
-                            ))}
-                        </div>
+                        {/* Bu Hafta Section */}
+                        {thisWeekEvents.length > 0 && (
+                            <section>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                                        <span className="text-2xl">📅</span> Bu Hafta
+                                    </h2>
+                                    <span className="text-sm text-slate-500">{thisWeekEvents.length} etkinlik</span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {thisWeekEvents.map((event) => (
+                                        <EventCard key={event.id} {...event} />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
 
-                        {/* Load More Button */}
-                        {hasMore && filteredEvents.length > 0 && (
-                            <div className="text-center mt-12">
-                                <button
-                                    onClick={loadMore}
-                                    disabled={loadingMore}
-                                    className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {loadingMore ? (
-                                        <span className="flex items-center gap-2">
-                                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                            </svg>
-                                            Yükleniyor...
+                        {/* Avantajlı Section */}
+                        {advantageEvents.length > 0 && (
+                            <section>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                                        <span className="text-2xl">💰</span> Avantajlı Fırsatlar
+                                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                                            Fiyat Karşılaştırmalı
                                         </span>
-                                    ) : (
-                                        'Daha Fazla Yükle'
-                                    )}
+                                    </h2>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {advantageEvents.map((event) => (
+                                        <EventCard key={event.id} {...event} />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {/* Popüler Section */}
+                        <section>
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                                    <span className="text-2xl">⭐</span> Popüler Etkinlikler
+                                </h2>
+                                <span className="text-sm text-slate-500">{popularEvents.length} etkinlik</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {popularEvents.map((event) => (
+                                    <EventCard key={event.id} {...event} />
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* Tümünü Göster Button */}
+                        {filteredEvents.length > 8 && (
+                            <div className="text-center pt-8">
+                                <button
+                                    onClick={() => {
+                                        // Could expand to show all or navigate to a full list page
+                                        router.push(`/${selectedCity ? cityToSlug(selectedCity.name) : ''}/etkinlikler`);
+                                    }}
+                                    className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+                                >
+                                    Tüm Etkinlikleri Gör ({filteredEvents.length})
                                 </button>
                             </div>
                         )}
                     </>
                 )}
-            </section>
+            </div>
 
             <Footer />
         </div>
