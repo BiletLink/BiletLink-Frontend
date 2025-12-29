@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import EventCard from '@/components/event/EventCard';
@@ -21,8 +22,10 @@ interface Event {
     category: string;
     minPrice: number;
     venueCity?: string | null;
+    venueName?: string | null;
     status?: EventStatus;
     platforms?: string[];
+    platformPrices?: Record<string, number>;
 }
 
 // Debounce hook
@@ -84,7 +87,7 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
 
     // Fetch events
     const fetchEvents = useCallback(async () => {
-        if (!selectedCity) return; // Don't fetch if no city selected
+        if (!selectedCity) return;
 
         try {
             setLoading(true);
@@ -145,23 +148,23 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
         const now = new Date();
         const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         return eventDate >= now && eventDate <= weekLater;
-    }).slice(0, 8);
+    }).slice(0, 10);
 
     // "Avantajlı" - Events with multiple platforms (price comparison available)
     const advantageEvents = filteredEvents.filter(e =>
         e.platforms && e.platforms.length > 1
-    ).slice(0, 8);
+    ).slice(0, 10);
 
-    // "Popüler" - Just the first 8 as placeholder (would need API support for actual popularity)
-    const popularEvents = filteredEvents.slice(0, 8);
+    // "Popüler" - All events
+    const popularEvents = filteredEvents.slice(0, 12);
 
     // Show city select page for first-time visitors
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-900">
+            <div className="min-h-screen bg-biletlink flex items-center justify-center">
                 <div className="text-center">
-                    <div className="inline-block w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                    <p className="mt-4 text-white/70">Yükleniyor...</p>
+                    <div className="inline-block w-12 h-12 border-4 border-[#5EB0EF]/30 border-t-[#5EB0EF] rounded-full animate-spin"></div>
+                    <p className="mt-4 text-white/60">Yükleniyor...</p>
                 </div>
             </div>
         );
@@ -172,43 +175,44 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
     }
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-[#F8FAFC]">
             <Header />
 
-            {/* Compact Hero Section */}
-            <section className="relative bg-gradient-to-r from-slate-900 via-blue-900 to-purple-900 py-12 overflow-hidden">
-                {/* Background Effects */}
-                <div className="absolute top-0 left-1/4 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20"></div>
-                <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
-
-                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    {/* Title & City */}
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-                            {selectedCity ? `${selectedCity.name}'daki Etkinlikler` : 'Etkinlikler'}
+            {/* Hero Section */}
+            <section className="relative bg-biletlink party-lights py-16 overflow-hidden">
+                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    {/* City & Title */}
+                    <div className="text-center mb-10 fade-in">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3">
+                            {selectedCity ? (
+                                <>
+                                    <span className="text-gradient-accent">{selectedCity.name}</span>
+                                    <span className="text-white/80">'daki Etkinlikler</span>
+                                </>
+                            ) : 'Etkinlikler'}
                         </h1>
-                        <p className="text-white/70">
+                        <p className="text-white/60 text-lg">
                             Konserler, tiyatrolar, spor etkinlikleri ve daha fazlası
                         </p>
                     </div>
 
                     {/* Search Box */}
-                    <div className="max-w-xl mx-auto mb-6">
+                    <div className="max-w-2xl mx-auto mb-8 fade-in" style={{ animationDelay: '0.1s' }}>
                         <div className="relative">
+                            <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
                             <input
                                 type="text"
                                 placeholder="Etkinlik, sanatçı veya mekan ara..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full px-6 py-4 pl-14 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white/20 transition-all"
+                                className="w-full px-6 py-4 pl-14 rounded-2xl glass-dark text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#5EB0EF]/50 transition-all"
                             />
-                            <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
                             {searchQuery && (
                                 <button
                                     onClick={() => setSearchQuery('')}
-                                    className="absolute right-5 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
+                                    className="absolute right-5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
                                 >
                                     ✕
                                 </button>
@@ -217,14 +221,14 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
                     </div>
 
                     {/* Category Filters */}
-                    <div className="flex flex-wrap justify-center gap-2">
+                    <div className="flex flex-wrap justify-center gap-2 fade-in" style={{ animationDelay: '0.2s' }}>
                         {categories.map((cat) => (
                             <button
                                 key={cat}
                                 onClick={() => setActiveCategory(cat)}
-                                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${activeCategory === cat
-                                    ? 'bg-white text-slate-900 shadow-lg'
-                                    : 'bg-white/10 text-white hover:bg-white/20'
+                                className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all ${activeCategory === cat
+                                        ? 'bg-[#5EB0EF] text-white shadow-lg shadow-[#5EB0EF]/30'
+                                        : 'glass-dark text-white/70 hover:text-white hover:bg-white/10'
                                     }`}
                             >
                                 {cat}
@@ -235,32 +239,38 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
             </section>
 
             {/* Event Sections */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-14">
 
                 {loading ? (
                     <div className="text-center py-20">
-                        <div className="inline-block w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                        <div className="inline-block w-12 h-12 border-4 border-[#5EB0EF]/30 border-t-[#5EB0EF] rounded-full animate-spin"></div>
                         <p className="mt-4 text-slate-500">Etkinlikler yükleniyor...</p>
                     </div>
                 ) : filteredEvents.length === 0 ? (
                     <div className="text-center py-20">
-                        <div className="text-6xl mb-4">😔</div>
-                        <p className="text-xl text-slate-500">Bu kategoride etkinlik bulunamadı.</p>
+                        <div className="text-6xl mb-4">🎭</div>
+                        <h3 className="text-xl font-semibold text-slate-700 mb-2">Etkinlik Bulunamadı</h3>
+                        <p className="text-slate-500">Bu kategoride henüz etkinlik yok.</p>
                     </div>
                 ) : (
                     <>
-                        {/* Bu Hafta Section */}
+                        {/* Bu Hafta Section - Horizontal Scroll */}
                         {thisWeekEvents.length > 0 && (
-                            <section>
+                            <section className="fade-in">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                                        <span className="text-2xl">📅</span> Bu Hafta
+                                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                                        <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#5EB0EF] to-[#A78BFA] flex items-center justify-center text-white text-lg">📅</span>
+                                        Bu Hafta
                                     </h2>
-                                    <span className="text-sm text-slate-500">{thisWeekEvents.length} etkinlik</span>
+                                    <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                                        {thisWeekEvents.length} etkinlik
+                                    </span>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className="scroll-x">
                                     {thisWeekEvents.map((event) => (
-                                        <EventCard key={event.id} {...event} />
+                                        <div key={event.id} className="w-[280px] sm:w-[320px]">
+                                            <EventCard {...event} />
+                                        </div>
                                     ))}
                                 </div>
                             </section>
@@ -268,49 +278,57 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
 
                         {/* Avantajlı Section */}
                         {advantageEvents.length > 0 && (
-                            <section>
+                            <section className="fade-in" style={{ animationDelay: '0.1s' }}>
                                 <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                                        <span className="text-2xl">💰</span> Avantajlı Fırsatlar
-                                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                                        <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10B981] to-[#22D3EE] flex items-center justify-center text-white text-lg">💰</span>
+                                        Avantajlı Fırsatlar
+                                        <span className="ml-2 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
                                             Fiyat Karşılaştırmalı
                                         </span>
                                     </h2>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div className="scroll-x">
                                     {advantageEvents.map((event) => (
-                                        <EventCard key={event.id} {...event} />
+                                        <div key={event.id} className="w-[280px] sm:w-[320px]">
+                                            <EventCard {...event} />
+                                        </div>
                                     ))}
                                 </div>
                             </section>
                         )}
 
-                        {/* Popüler Section */}
-                        <section>
+                        {/* Popüler Section - Grid */}
+                        <section className="fade-in" style={{ animationDelay: '0.2s' }}>
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                                    <span className="text-2xl">⭐</span> Popüler Etkinlikler
+                                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                                    <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#F472B6] to-[#A78BFA] flex items-center justify-center text-white text-lg">⭐</span>
+                                    Popüler Etkinlikler
                                 </h2>
-                                <span className="text-sm text-slate-500">{popularEvents.length} etkinlik</span>
+                                <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                                    {popularEvents.length} etkinlik
+                                </span>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {popularEvents.map((event) => (
                                     <EventCard key={event.id} {...event} />
                                 ))}
                             </div>
                         </section>
 
-                        {/* Tümünü Göster Button */}
-                        {filteredEvents.length > 8 && (
-                            <div className="text-center pt-8">
+                        {/* View All Button */}
+                        {filteredEvents.length > 12 && (
+                            <div className="text-center pt-4">
                                 <button
                                     onClick={() => {
-                                        // Could expand to show all or navigate to a full list page
                                         router.push(`/${selectedCity ? cityToSlug(selectedCity.name) : ''}/etkinlikler`);
                                     }}
-                                    className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-full hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+                                    className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#5EB0EF] to-[#A78BFA] text-white font-semibold rounded-full hover:shadow-xl hover:shadow-[#5EB0EF]/30 transition-all transform hover:-translate-y-0.5"
                                 >
-                                    Tüm Etkinlikleri Gör ({filteredEvents.length})
+                                    Tüm Etkinlikleri Gör
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                    </svg>
                                 </button>
                             </div>
                         )}
