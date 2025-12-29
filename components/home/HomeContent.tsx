@@ -62,7 +62,7 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
 
     const debouncedSearch = useDebounce(searchQuery, 300);
 
-    const categories = ['Tümü', 'Konser', 'Tiyatro', 'Stand-Up', 'Spor', 'Festival', 'Müzikal', 'Opera', 'Bale', 'Gösteri'];
+    const categories = ['Tümü', 'Konser', 'Tiyatro', 'Stand-Up', 'Spor', 'Festival'];
 
     // Handle initial city from props (URL-based)
     useEffect(() => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface PartyLightsProps {
     children: React.ReactNode;
@@ -9,133 +9,157 @@ interface PartyLightsProps {
 
 export default function PartyLights({ children, className = '' }: PartyLightsProps) {
     const containerRef = useRef<HTMLDivElement>(null);
-    const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
-    const [clickEffects, setClickEffects] = useState<{ id: number; x: number; y: number }[]>([]);
+    const [mouseInfluence, setMouseInfluence] = useState({ x: 50, y: 50 });
+    const [time, setTime] = useState(0);
+    const [splashes, setSplashes] = useState<{ id: number; x: number; y: number; color: string }[]>([]);
 
+    // Smooth animation loop
+    useEffect(() => {
+        let animationId: number;
+        const animate = () => {
+            setTime(t => t + 0.008);
+            animationId = requestAnimationFrame(animate);
+        };
+        animationId = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(animationId);
+    }, []);
+
+    // Handle mouse movement with smoothing
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
+        let targetX = 50;
+        let targetY = 50;
+        let currentX = 50;
+        let currentY = 50;
+
         const handleMouseMove = (e: MouseEvent) => {
             const rect = container.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
-            setMousePosition({ x, y });
+            targetX = ((e.clientX - rect.left) / rect.width) * 100;
+            targetY = ((e.clientY - rect.top) / rect.height) * 100;
         };
 
-        const handleClick = (e: MouseEvent) => {
-            const rect = container.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
-            const id = Date.now();
-
-            setClickEffects(prev => [...prev, { id, x, y }]);
-
-            // Remove effect after animation
-            setTimeout(() => {
-                setClickEffects(prev => prev.filter(effect => effect.id !== id));
-            }, 1000);
+        // Smooth interpolation
+        const smoothUpdate = () => {
+            currentX += (targetX - currentX) * 0.02;
+            currentY += (targetY - currentY) * 0.02;
+            setMouseInfluence({ x: currentX, y: currentY });
         };
 
         container.addEventListener('mousemove', handleMouseMove);
-        container.addEventListener('click', handleClick);
+        const smoothInterval = setInterval(smoothUpdate, 16);
 
         return () => {
             container.removeEventListener('mousemove', handleMouseMove);
-            container.removeEventListener('click', handleClick);
+            clearInterval(smoothInterval);
         };
     }, []);
+
+    // Handle clicks - color splash
+    const handleClick = useCallback((e: React.MouseEvent) => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+        const colors = ['#5EB0EF', '#A78BFA', '#F472B6', '#22D3EE', '#10B981'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const id = Date.now();
+
+        setSplashes(prev => [...prev, { id, x, y, color }]);
+
+        setTimeout(() => {
+            setSplashes(prev => prev.filter(s => s.id !== id));
+        }, 1500);
+    }, []);
+
+    // Calculate smooth floating positions
+    const orb1X = 20 + Math.sin(time * 0.7) * 15 + (mouseInfluence.x - 50) * 0.3;
+    const orb1Y = 25 + Math.cos(time * 0.5) * 20 + (mouseInfluence.y - 50) * 0.2;
+    const orb2X = 75 + Math.sin(time * 0.5 + 2) * 18 + (mouseInfluence.x - 50) * 0.2;
+    const orb2Y = 30 + Math.cos(time * 0.6 + 1) * 15 + (mouseInfluence.y - 50) * 0.25;
+    const orb3X = 50 + Math.sin(time * 0.4 + 4) * 25 + (mouseInfluence.x - 50) * 0.15;
+    const orb3Y = 70 + Math.cos(time * 0.7 + 3) * 12 + (mouseInfluence.y - 50) * 0.2;
+    const orb4X = 85 + Math.sin(time * 0.6 + 1) * 10 + (mouseInfluence.x - 50) * 0.25;
+    const orb4Y = 65 + Math.cos(time * 0.4 + 2) * 18 + (mouseInfluence.y - 50) * 0.15;
 
     return (
         <div
             ref={containerRef}
+            onClick={handleClick}
             className={`relative overflow-hidden ${className}`}
             style={{
-                background: 'linear-gradient(135deg, #0A0F1C 0%, #1A1F3C 50%, #0F172A 100%)'
+                background: 'linear-gradient(135deg, #0A0F1C 0%, #12182B 50%, #0F172A 100%)'
             }}
         >
-            {/* Interactive Light Orbs - Follow Mouse */}
-            <div
-                className="absolute inset-0 pointer-events-none transition-all duration-300 ease-out"
-                style={{
-                    background: `
-                        radial-gradient(ellipse 600px 400px at ${mousePosition.x}% ${mousePosition.y}%, rgba(94, 176, 239, 0.2) 0%, transparent 70%),
-                        radial-gradient(ellipse 500px 350px at ${100 - mousePosition.x}% ${mousePosition.y * 0.5}%, rgba(167, 139, 250, 0.15) 0%, transparent 60%),
-                        radial-gradient(ellipse 400px 300px at ${mousePosition.x * 0.7}% ${100 - mousePosition.y}%, rgba(244, 114, 182, 0.12) 0%, transparent 55%),
-                        radial-gradient(ellipse 350px 250px at ${100 - mousePosition.x * 0.5}% ${100 - mousePosition.y * 0.7}%, rgba(34, 211, 238, 0.1) 0%, transparent 50%)
-                    `
-                }}
-            />
+            {/* Floating Light Orbs */}
+            <div className="absolute inset-0 pointer-events-none">
+                {/* Main Blue Orb */}
+                <div
+                    className="absolute w-[500px] h-[400px] rounded-full blur-[100px] transition-all duration-1000"
+                    style={{
+                        left: `${orb1X}%`,
+                        top: `${orb1Y}%`,
+                        transform: 'translate(-50%, -50%)',
+                        background: 'radial-gradient(circle, rgba(94, 176, 239, 0.25) 0%, transparent 70%)',
+                    }}
+                />
 
-            {/* Ambient Animation Layer */}
-            <div className="absolute inset-0 pointer-events-none opacity-50">
+                {/* Purple Orb */}
                 <div
-                    className="absolute w-[600px] h-[600px] rounded-full blur-3xl animate-pulse"
+                    className="absolute w-[450px] h-[350px] rounded-full blur-[90px] transition-all duration-1000"
                     style={{
-                        top: '10%',
-                        left: '20%',
-                        background: 'radial-gradient(circle, rgba(94, 176, 239, 0.15) 0%, transparent 70%)',
-                        animationDuration: '4s'
+                        left: `${orb2X}%`,
+                        top: `${orb2Y}%`,
+                        transform: 'translate(-50%, -50%)',
+                        background: 'radial-gradient(circle, rgba(167, 139, 250, 0.2) 0%, transparent 70%)',
                     }}
                 />
+
+                {/* Pink Orb */}
                 <div
-                    className="absolute w-[500px] h-[500px] rounded-full blur-3xl animate-pulse"
+                    className="absolute w-[400px] h-[300px] rounded-full blur-[80px] transition-all duration-1000"
                     style={{
-                        top: '50%',
-                        right: '10%',
-                        background: 'radial-gradient(circle, rgba(167, 139, 250, 0.12) 0%, transparent 70%)',
-                        animationDuration: '5s',
-                        animationDelay: '1s'
+                        left: `${orb3X}%`,
+                        top: `${orb3Y}%`,
+                        transform: 'translate(-50%, -50%)',
+                        background: 'radial-gradient(circle, rgba(244, 114, 182, 0.15) 0%, transparent 70%)',
                     }}
                 />
+
+                {/* Cyan Orb */}
                 <div
-                    className="absolute w-[400px] h-[400px] rounded-full blur-3xl animate-pulse"
+                    className="absolute w-[350px] h-[280px] rounded-full blur-[70px] transition-all duration-1000"
                     style={{
-                        bottom: '20%',
-                        left: '40%',
-                        background: 'radial-gradient(circle, rgba(244, 114, 182, 0.1) 0%, transparent 70%)',
-                        animationDuration: '6s',
-                        animationDelay: '2s'
+                        left: `${orb4X}%`,
+                        top: `${orb4Y}%`,
+                        transform: 'translate(-50%, -50%)',
+                        background: 'radial-gradient(circle, rgba(34, 211, 238, 0.12) 0%, transparent 70%)',
                     }}
                 />
             </div>
 
-            {/* Click Effects */}
-            {clickEffects.map(effect => (
+            {/* Click Splash Effects */}
+            {splashes.map(splash => (
                 <div
-                    key={effect.id}
+                    key={splash.id}
                     className="absolute pointer-events-none"
                     style={{
-                        left: `${effect.x}%`,
-                        top: `${effect.y}%`,
+                        left: `${splash.x}%`,
+                        top: `${splash.y}%`,
                         transform: 'translate(-50%, -50%)'
                     }}
                 >
-                    <div className="relative">
-                        {/* Ripple 1 */}
-                        <div
-                            className="absolute w-4 h-4 rounded-full bg-white/30 animate-ping"
-                            style={{ animationDuration: '0.8s' }}
-                        />
-                        {/* Ripple 2 */}
-                        <div
-                            className="absolute w-8 h-8 -top-2 -left-2 rounded-full border-2 border-white/20"
-                            style={{
-                                animation: 'clickRipple 0.8s ease-out forwards'
-                            }}
-                        />
-                        {/* Burst particles */}
-                        {[...Array(6)].map((_, i) => (
-                            <div
-                                key={i}
-                                className="absolute w-1.5 h-1.5 rounded-full bg-white/60"
-                                style={{
-                                    animation: `particle${i % 3} 0.6s ease-out forwards`,
-                                    animationDelay: `${i * 0.05}s`
-                                }}
-                            />
-                        ))}
-                    </div>
+                    <div
+                        className="w-4 h-4 rounded-full animate-splash-ring"
+                        style={{
+                            boxShadow: `0 0 60px 30px ${splash.color}40, 0 0 100px 60px ${splash.color}20`,
+                            background: `radial-gradient(circle, ${splash.color}60 0%, transparent 70%)`
+                        }}
+                    />
                 </div>
             ))}
 
@@ -145,27 +169,18 @@ export default function PartyLights({ children, className = '' }: PartyLightsPro
             </div>
 
             <style jsx>{`
-                @keyframes clickRipple {
+                @keyframes splash-ring {
                     0% {
-                        transform: scale(1);
+                        transform: scale(0.5);
                         opacity: 1;
                     }
                     100% {
-                        transform: scale(8);
+                        transform: scale(15);
                         opacity: 0;
                     }
                 }
-                @keyframes particle0 {
-                    0% { transform: translate(0, 0) scale(1); opacity: 1; }
-                    100% { transform: translate(30px, -40px) scale(0); opacity: 0; }
-                }
-                @keyframes particle1 {
-                    0% { transform: translate(0, 0) scale(1); opacity: 1; }
-                    100% { transform: translate(-35px, -25px) scale(0); opacity: 0; }
-                }
-                @keyframes particle2 {
-                    0% { transform: translate(0, 0) scale(1); opacity: 1; }
-                    100% { transform: translate(40px, 20px) scale(0); opacity: 0; }
+                .animate-splash-ring {
+                    animation: splash-ring 1.2s ease-out forwards;
                 }
             `}</style>
         </div>
