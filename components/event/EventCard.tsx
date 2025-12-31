@@ -104,9 +104,19 @@ export default function EventCard({
 
     const getImageSrc = () => {
         if (!imageUrl) return null;
-        if (imageUrl.startsWith('http')) return imageUrl;
+
+        // If it's already a full URL, use the API proxy to cache it
+        if (imageUrl.startsWith('http')) {
+            // Use API proxy for external images (handles hotlink protection)
+            return `${API_BASE}/api/images/proxy?url=${encodeURIComponent(imageUrl)}`;
+        }
+
+        // Local images
         if (imageUrl.startsWith('/images')) return `${API_BASE}${imageUrl}`;
-        return `https://www.biletix.com/static/images/live/event/eventimages/${imageUrl}`;
+
+        // Legacy Biletix partial paths
+        const fullUrl = `https://www.biletix.com/static/images/live/event/eventimages/${imageUrl}`;
+        return `${API_BASE}/api/images/proxy?url=${encodeURIComponent(fullUrl)}`;
     };
 
     const getCategoryStyle = (cat?: string | null) => {
