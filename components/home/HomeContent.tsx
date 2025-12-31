@@ -310,22 +310,7 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
                             </div>
                         </section>
 
-                        {/* View All Button */}
-                        {filteredEvents.length > 12 && (
-                            <div className="text-center pt-4">
-                                <button
-                                    onClick={() => {
-                                        router.push(`/${selectedCity ? cityToSlug(selectedCity.name) : ''}/etkinlikler`);
-                                    }}
-                                    className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#5EB0EF] to-[#A78BFA] text-white font-semibold rounded-full hover:shadow-xl hover:shadow-[#5EB0EF]/30 transition-all transform hover:-translate-y-0.5"
-                                >
-                                    Tüm Etkinlikleri Gör
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                    </svg>
-                                </button>
-                            </div>
-                        )}
+
                     </>
                 )}
             </div>
