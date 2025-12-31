@@ -40,7 +40,7 @@ export default function Header() {
     };
 
     return (
-        <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-lg border-b border-slate-100">
+        <header className="sticky top-0 z-50 bg-[#5dbafc] backdrop-blur-lg border-b border-[#4aa8ea]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
@@ -58,23 +58,23 @@ export default function Header() {
                     <div className="relative" ref={dropdownRef}>
                         <button
                             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors border border-slate-200"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 transition-colors border border-white/30"
                         >
-                            <svg className="w-4 h-4 text-[#5EB0EF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
-                            <span className="font-medium text-slate-700 text-sm">
+                            <span className="font-medium text-white text-sm">
                                 {selectedCity ? (
                                     <span className="flex items-center gap-1.5">
-                                        <span className="bg-[#5EB0EF]/10 text-[#5EB0EF] px-1.5 py-0.5 rounded text-xs font-bold">{selectedCity.code}</span>
+                                        <span className="bg-white/20 text-white px-1.5 py-0.5 rounded text-xs font-bold">{selectedCity.code}</span>
                                         <span className="hidden sm:inline">{selectedCity.name}</span>
                                     </span>
                                 ) : (
                                     'Şehir Seç'
                                 )}
                             </span>
-                            <svg className={`w-4 h-4 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className={`w-4 h-4 text-white/70 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
@@ -104,8 +104,8 @@ export default function Header() {
                                                 }`}
                                         >
                                             <span className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold ${selectedCity?.code === city.code
-                                                    ? 'bg-[#5EB0EF] text-white'
-                                                    : 'bg-slate-100 text-slate-600'
+                                                ? 'bg-[#5EB0EF] text-white'
+                                                : 'bg-slate-100 text-slate-600'
                                                 }`}>
                                                 {city.code}
                                             </span>
@@ -125,7 +125,7 @@ export default function Header() {
                     {/* CTA Button */}
                     <Link
                         href={selectedCity ? `/${cityToSlug(selectedCity.name)}` : '/'}
-                        className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#5EB0EF] to-[#A78BFA] text-white font-medium rounded-xl hover:shadow-lg hover:shadow-[#5EB0EF]/30 transition-all text-sm"
+                        className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 bg-white text-[#5dbafc] font-semibold rounded-xl hover:bg-white/90 transition-all text-sm shadow-md"
                     >
                         <span>Etkinlikleri Keşfet</span>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,7 +136,7 @@ export default function Header() {
                     {/* Mobile Menu Button */}
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="sm:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                        className="sm:hidden p-2 rounded-lg hover:bg-white/20 transition-colors text-white"
                     >
                         <svg className="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             {isMobileMenuOpen ? (
