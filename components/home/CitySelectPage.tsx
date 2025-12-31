@@ -105,9 +105,21 @@ export default function CitySelectPage() {
                         )}
                     </div>
 
+                    {/* Skip to All Turkey */}
+                    <button
+                        onClick={() => {
+                            setSelectedCity(null);
+                            window.location.href = '/etkinlikler';
+                        }}
+                        className="mb-10 px-6 py-3 bg-gradient-to-r from-[#5EB0EF] to-[#A78BFA] text-white font-semibold rounded-full hover:shadow-xl hover:shadow-[#5EB0EF]/30 transition-all transform hover:-translate-y-0.5 fade-in"
+                        style={{ animationDelay: '0.15s' }}
+                    >
+                        🇹🇷 Tüm Türkiye'deki Etkinlikler
+                    </button>
+
                     {/* Popular Cities */}
                     <h2 className="text-sm font-medium text-white/50 uppercase tracking-wider mb-6 fade-in" style={{ animationDelay: '0.2s' }}>
-                        Popüler Şehirler
+                        veya Şehir Seç
                     </h2>
 
                     <div className="w-full max-w-5xl grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-5 fade-in" style={{ animationDelay: '0.3s' }}>
