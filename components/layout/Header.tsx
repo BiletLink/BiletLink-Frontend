@@ -44,15 +44,14 @@ export default function Header() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
-                    <Link href="/" className="flex items-center gap-3 group">
+                    <Link href="/" className="flex items-center gap-2 group">
                         <Image
-                            src="/logos/logo-icon.jpg"
+                            src="/logos/logo-transparent.png"
                             alt="BiletLink"
-                            width={40}
+                            width={140}
                             height={40}
-                            className="w-10 h-10 rounded-xl group-hover:scale-105 transition-transform"
+                            className="h-8 w-auto group-hover:scale-105 transition-transform"
                         />
-                        <span className="text-xl font-bold text-[#5EB0EF] hidden sm:block">BiletLink</span>
                     </Link>
 
                     {/* City Selector Dropdown */}

@@ -180,6 +180,7 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
     return (
         <div className="min-h-screen bg-[#F8FAFC]">
             <Header />
+            <AnnouncementBanner />
 
             {/* Hero Section */}
             <section className="relative bg-biletlink party-lights py-16 overflow-hidden">
