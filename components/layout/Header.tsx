@@ -48,9 +48,9 @@ export default function Header() {
                         <Image
                             src="/logos/logo-transparent.png"
                             alt="BiletLink"
-                            width={140}
-                            height={40}
-                            className="h-8 w-auto group-hover:scale-105 transition-transform"
+                            width={180}
+                            height={50}
+                            className="h-10 w-auto group-hover:scale-105 transition-transform"
                         />
                     </Link>
 

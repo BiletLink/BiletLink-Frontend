@@ -43,14 +43,14 @@ export default function CitySelectPage() {
         <PartyLights className="min-h-screen">
             <div className="relative z-10 min-h-screen flex flex-col">
                 {/* Header with Transparent Logo */}
-                <header className="py-10 px-4">
+                <header className="py-12 px-4">
                     <div className="max-w-7xl mx-auto flex justify-center">
                         <Image
                             src="/logos/logo-transparent.png"
                             alt="BiletLink"
-                            width={280}
-                            height={70}
-                            className="h-16 sm:h-20 w-auto"
+                            width={350}
+                            height={90}
+                            className="h-20 sm:h-28 w-auto"
                             priority
                         />
                     </div>
