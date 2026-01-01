@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
+import ShareButton from '@/components/event/ShareButton';
 
 interface Session {
     id: string;
@@ -250,9 +251,15 @@ export default function EventDetailClient({ initialEvent }: { initialEvent?: Eve
                         {/* Title & Info */}
                         <div className="flex-1 space-y-4 md:space-y-6 text-white drop-shadow-lg">
                             <div>
-                                <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-sm font-semibold tracking-wide uppercase mb-4 text-indigo-100 shadow-sm">
-                                    {event.category}
-                                </span>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-sm font-semibold tracking-wide uppercase text-indigo-100 shadow-sm">
+                                        {event.category}
+                                    </span>
+                                    <ShareButton
+                                        eventName={event.name}
+                                        eventUrl={`/${event.venue?.city?.toLowerCase() || 'etkinlik'}/${event.category?.toLowerCase() || 'etkinlik'}/${event.slug || event.id}`}
+                                    />
+                                </div>
                                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight tight-tracking">
                                     {event.name}
                                 </h1>
