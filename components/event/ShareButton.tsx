@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface ShareButtonProps {
     eventName: string;
@@ -11,29 +11,9 @@ interface ShareButtonProps {
 export default function ShareButton({ eventName, eventUrl, className = '' }: ShareButtonProps) {
     const [showToast, setShowToast] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
 
     const shareText = `${eventName} etkinliğine katılmak ister misin? 🎫`;
     const fullUrl = `https://www.biletlink.co${eventUrl}?v=share`;
-
-    // Always show dropdown menu (native share causes X image preview issues)
-    // Keep mobile detection only for styling purposes if needed later
-
-    // Native share for mobile
-    const handleNativeShare = async () => {
-        try {
-            await navigator.share({
-                title: eventName,
-                text: shareText,
-                url: fullUrl,
-            });
-        } catch (err) {
-            // User cancelled or error - fall back to dropdown
-            if ((err as Error).name !== 'AbortError') {
-                setIsOpen(true);
-            }
-        }
-    };
 
     const shareLinks = [
         {
@@ -80,12 +60,8 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
     };
 
     const handleButtonClick = () => {
-        // On mobile, use native share if available
-        if (isMobile) {
-            handleNativeShare();
-        } else {
-            setIsOpen(!isOpen);
-        }
+        // Always show dropdown - X intent URLs work better for image previews
+        setIsOpen(!isOpen);
     };
 
     return (
@@ -101,8 +77,8 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
                 <span className="hidden sm:inline">Paylaş</span>
             </button>
 
-            {/* Dropdown - Only shown on desktop */}
-            {isOpen && !isMobile && (
+            {/* Dropdown */}
+            {isOpen && (
                 <>
                     {/* Backdrop */}
                     <div
@@ -136,40 +112,6 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
                                     copyLink();
                                     setIsOpen(false);
                                 }}
-                                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-700 hover:bg-slate-100 transition-all"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                                </svg>
-                                <span className="font-medium">Linki Kopyala</span>
-                            </button>
-                        </div>
-                    </div>
-                </>
-            )}
-
-            {/* Fallback dropdown on mobile if native share fails */}
-            {isOpen && isMobile && (
-                <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50">
-                        <div className="p-2">
-                            {shareLinks.map((link) => (
-                                <a
-                                    key={link.name}
-                                    href={link.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={() => setIsOpen(false)}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-slate-700 transition-all ${link.color}`}
-                                >
-                                    {link.icon}
-                                    <span className="font-medium">{link.name}</span>
-                                </a>
-                            ))}
-                            <div className="my-2 border-t border-slate-100" />
-                            <button
-                                onClick={() => { copyLink(); setIsOpen(false); }}
                                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-700 hover:bg-slate-100 transition-all"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
