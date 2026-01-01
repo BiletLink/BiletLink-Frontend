@@ -11,14 +11,20 @@ interface ShareButtonProps {
 export default function ShareButton({ eventName, eventUrl, className = '' }: ShareButtonProps) {
     const [showToast, setShowToast] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
-    const [canNativeShare, setCanNativeShare] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     const shareText = `${eventName} etkinliğine katılmak ister misin? 🎫`;
     const fullUrl = `https://biletlink.co${eventUrl}`;
 
-    // Check if Web Share API is available (mainly mobile)
+    // Check if on mobile device (only use native share on mobile)
     useEffect(() => {
-        setCanNativeShare(typeof navigator !== 'undefined' && !!navigator.share);
+        const checkMobile = () => {
+            const userAgent = navigator.userAgent || navigator.vendor;
+            const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+            const hasNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
+            setIsMobile(isMobileDevice && hasNativeShare);
+        };
+        checkMobile();
     }, []);
 
     // Native share for mobile
@@ -83,7 +89,7 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
 
     const handleButtonClick = () => {
         // On mobile, use native share if available
-        if (canNativeShare) {
+        if (isMobile) {
             handleNativeShare();
         } else {
             setIsOpen(!isOpen);
@@ -103,8 +109,8 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
                 <span className="hidden sm:inline">Paylaş</span>
             </button>
 
-            {/* Dropdown - Only shown on desktop when native share not available */}
-            {isOpen && !canNativeShare && (
+            {/* Dropdown - Only shown on desktop */}
+            {isOpen && !isMobile && (
                 <>
                     {/* Backdrop */}
                     <div
@@ -151,7 +157,7 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
             )}
 
             {/* Fallback dropdown on mobile if native share fails */}
-            {isOpen && canNativeShare && (
+            {isOpen && isMobile && (
                 <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
                     <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50">
