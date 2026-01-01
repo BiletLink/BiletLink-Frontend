@@ -109,7 +109,7 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
             {/* Modal Overlay */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+                    className="fixed inset-0 z-50 flex items-center justify-center"
                     onClick={() => setIsOpen(false)}
                 >
                     {/* Modal Content - White Theme */}
