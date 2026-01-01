@@ -67,7 +67,7 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
         const description = `${event.date ? new Date(event.date).toLocaleDateString('tr-TR') : ''} tarihinde ${event.venue?.name || ''} mekanında gerçekleşecek ${event.name} etkinliği için biletler BiletLink'te!`;
 
         // Prefer /city/category/slug as canonical
-        const canonicalUrl = `https://biletlink.co/${city}/${category}/${slug}`;
+        const canonicalUrl = `https://www.biletlink.co/${city}/${category}/${slug}`;
 
         return {
             title,
