@@ -16,16 +16,8 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
     const shareText = `${eventName} etkinliğine katılmak ister misin? 🎫`;
     const fullUrl = `https://www.biletlink.co${eventUrl}?v=share`;
 
-    // Check if on mobile device (only use native share on mobile)
-    useEffect(() => {
-        const checkMobile = () => {
-            const userAgent = navigator.userAgent || navigator.vendor;
-            const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
-            const hasNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
-            setIsMobile(isMobileDevice && hasNativeShare);
-        };
-        checkMobile();
-    }, []);
+    // Always show dropdown menu (native share causes X image preview issues)
+    // Keep mobile detection only for styling purposes if needed later
 
     // Native share for mobile
     const handleNativeShare = async () => {
