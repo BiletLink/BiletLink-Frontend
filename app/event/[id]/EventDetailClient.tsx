@@ -50,7 +50,7 @@ interface GroupedSession {
     platforms: { platform: string; title?: string; price?: number; url?: string; }[];
 }
 
-export default function EventDetailClient({ initialEvent }: { initialEvent?: EventDetail | null }) {
+export default function EventDetailClient({ initialEvent, urlPath }: { initialEvent?: EventDetail | null; urlPath?: string }) {
     const params = useParams();
     const [event, setEvent] = useState<EventDetail | null>(initialEvent || null);
     const [loading, setLoading] = useState(!initialEvent);
@@ -258,7 +258,7 @@ export default function EventDetailClient({ initialEvent }: { initialEvent?: Eve
                                     </span>
                                     <ShareButton
                                         eventName={event.name}
-                                        eventUrl={`/${cityToSlug(event.venue?.city || 'etkinlik')}/${cityToSlug(event.category || 'etkinlik')}/${event.slug || event.id}`}
+                                        eventUrl={urlPath || `/${cityToSlug(event.venue?.city || 'etkinlik')}/${cityToSlug(event.category || 'etkinlik')}/${event.slug || event.id}`}
                                     />
                                 </div>
                                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight tight-tracking">

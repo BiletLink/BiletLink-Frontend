@@ -105,5 +105,5 @@ export default function EventBySeoUrl({ city, category, slug }: EventBySeoUrlPro
         );
     }
 
-    return <EventDetailClient initialEvent={event} />;
+    return <EventDetailClient initialEvent={event} urlPath={`/${city}/${category}/${slug}`} />;
 }
