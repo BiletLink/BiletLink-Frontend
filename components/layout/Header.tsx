@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCity } from '@/contexts/CityContext';
 import { cities, cityToSlug } from '@/utils/cityUtils';
 
 export default function Header() {
     const { selectedCity, setSelectedCity } = useCity();
+    const router = useRouter();
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -37,6 +39,9 @@ export default function Header() {
         setSelectedCity(city);
         setIsDropdownOpen(false);
         setSearchQuery('');
+        // Navigate to the selected city's page
+        const citySlug = cityToSlug(city.name);
+        router.push(`/${citySlug}`);
     };
 
     return (
