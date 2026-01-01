@@ -30,6 +30,7 @@ export default async function Image({ params }: { params: PageParams }) {
     const { category, city, slug } = parseParams(params);
 
     // Fetch event data
+    // API expects: /api/master-events/by-slug/{category}/{city}/{slug}
     let event: any = null;
     try {
         const res = await fetch(`https://api.biletlink.co/api/master-events/by-slug/${category}/${city}/${slug}`, {

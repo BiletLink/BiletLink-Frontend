@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import ShareButton from '@/components/event/ShareButton';
+import { cityToSlug } from '@/utils/cityUtils';
 
 interface Session {
     id: string;
@@ -257,7 +258,7 @@ export default function EventDetailClient({ initialEvent }: { initialEvent?: Eve
                                     </span>
                                     <ShareButton
                                         eventName={event.name}
-                                        eventUrl={`/${event.venue?.city?.toLowerCase() || 'etkinlik'}/${event.category?.toLowerCase() || 'etkinlik'}/${event.slug || event.id}`}
+                                        eventUrl={`/${cityToSlug(event.venue?.city || 'etkinlik')}/${cityToSlug(event.category || 'etkinlik')}/${event.slug || event.id}`}
                                     />
                                 </div>
                                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight tight-tracking">
