@@ -14,7 +14,7 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
     const [isMobile, setIsMobile] = useState(false);
 
     const shareText = `${eventName} etkinliğine katılmak ister misin? 🎫`;
-    const fullUrl = `https://biletlink.co${eventUrl}`;
+    const fullUrl = `https://www.biletlink.co${eventUrl}`;
 
     // Check if on mobile device (only use native share on mobile)
     useEffect(() => {
