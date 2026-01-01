@@ -69,27 +69,31 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
         // Prefer /city/category/slug as canonical
         const canonicalUrl = `https://www.biletlink.co/${city}/${category}/${slug}`;
 
+        // OG image URL - API'den 1200x630 resim
+        const ogImageUrl = event.imageUrl ? `${event.imageUrl}` : null;
+
         return {
             title,
             description,
             openGraph: {
                 title,
                 description,
-                images: event.imageUrl ? [{
-                    url: event.imageUrl,
-                    width: 800,
-                    height: 500,
-                    alt: event.name,
-                }] : [],
+                url: canonicalUrl,
                 type: 'website',
                 siteName: 'BiletLink',
+                images: ogImageUrl ? [{
+                    url: ogImageUrl,
+                    width: 1200,
+                    height: 630,
+                    alt: event.name,
+                }] : [],
             },
             twitter: {
                 card: 'summary_large_image',
                 title,
                 description,
-                images: event.imageUrl ? [event.imageUrl] : [],
                 site: '@biletlink',
+                images: ogImageUrl ? [ogImageUrl] : [],
             },
             alternates: {
                 canonical: canonicalUrl,
