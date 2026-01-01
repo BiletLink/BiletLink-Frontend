@@ -75,7 +75,7 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
             openGraph: {
                 title,
                 description,
-                images: event.imageUrl ? [event.imageUrl] : [],
+                // images handled by opengraph-image.tsx for BiletLink branding
                 url: canonicalUrl,
                 type: 'website',
             },
@@ -83,7 +83,7 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
                 card: 'summary_large_image',
                 title,
                 description,
-                images: event.imageUrl ? [event.imageUrl] : [],
+                // images handled by opengraph-image.tsx for BiletLink branding
             },
             alternates: {
                 canonical: canonicalUrl,
