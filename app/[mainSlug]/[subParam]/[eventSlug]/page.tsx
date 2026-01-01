@@ -75,13 +75,22 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
             openGraph: {
                 title,
                 description,
+                images: event.imageUrl ? [{
+                    url: event.imageUrl,
+                    width: 800,
+                    height: 500,
+                    alt: event.name,
+                }] : [],
                 url: canonicalUrl,
                 type: 'website',
+                siteName: 'BiletLink',
             },
             twitter: {
                 card: 'summary_large_image',
                 title,
                 description,
+                images: event.imageUrl ? [event.imageUrl] : [],
+                site: '@biletlink',
             },
             alternates: {
                 canonical: canonicalUrl,
