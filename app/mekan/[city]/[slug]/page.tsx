@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
+import EventCalendar from '@/components/event/EventCalendar';
 
 interface VenueEvent {
     id: string;
@@ -220,52 +221,11 @@ export default function VenueDetailPage() {
                     <h2 className="text-2xl font-bold text-slate-800 mb-8">
                         🎫 Bu Mekandaki Etkinlikler
                     </h2>
-
-                    {venue.upcomingEvents.length === 0 ? (
-                        <div className="text-center py-12 bg-slate-50 rounded-2xl">
-                            <div className="text-5xl mb-4">📅</div>
-                            <p className="text-slate-500">Şu an yaklaşan etkinlik bulunmuyor</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {venue.upcomingEvents.map((event) => (
-                                <Link
-                                    key={event.id}
-                                    href={getEventUrl(event, venue.city)}
-                                    className="flex items-center gap-4 p-4 bg-white rounded-xl border border-slate-200 hover:border-teal-300 hover:shadow-lg transition-all group"
-                                >
-                                    {event.imageUrl && (
-                                        <img
-                                            src={event.imageUrl}
-                                            alt={event.name}
-                                            className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
-                                        />
-                                    )}
-                                    <div className="flex-grow min-w-0">
-                                        <h3 className="font-semibold text-slate-800 group-hover:text-teal-600 transition-colors truncate">
-                                            {event.name}
-                                        </h3>
-                                        <p className="text-sm text-slate-500">
-                                            📅 {formatDate(event.date)}
-                                        </p>
-                                        {event.category && (
-                                            <span className="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-500 text-xs rounded">
-                                                {event.category}
-                                            </span>
-                                        )}
-                                    </div>
-                                    {event.minPrice && (
-                                        <div className="text-right flex-shrink-0">
-                                            <p className="text-xs text-slate-400">başlayan</p>
-                                            <p className="text-lg font-bold text-teal-600">
-                                                {event.minPrice.toLocaleString('tr-TR')}₺
-                                            </p>
-                                        </div>
-                                    )}
-                                </Link>
-                            ))}
-                        </div>
-                    )}
+                    <EventCalendar
+                        events={venue.upcomingEvents}
+                        getEventUrl={(event) => getEventUrl(event, venue.city)}
+                        accentColor="teal"
+                    />
                 </div>
             </section>
 

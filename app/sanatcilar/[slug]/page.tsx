@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Link from 'next/link';
+import EventCalendar from '@/components/event/EventCalendar';
 
 interface ArtistEvent {
     id: string;
@@ -203,58 +204,18 @@ export default function ArtistDetailPage() {
                 </section>
             )}
 
+
             {/* Events Section */}
             <section className="flex-grow py-12 px-4">
                 <div className="container mx-auto max-w-5xl">
                     <h2 className="text-2xl font-bold text-slate-800 mb-8">
                         🎫 Yaklaşan Etkinlikler
                     </h2>
-
-                    {artist.upcomingEvents.length === 0 ? (
-                        <div className="text-center py-12 bg-slate-50 rounded-2xl">
-                            <div className="text-5xl mb-4">📅</div>
-                            <p className="text-slate-500">Şu an yaklaşan etkinlik bulunmuyor</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {artist.upcomingEvents.map((event) => (
-                                <Link
-                                    key={event.id}
-                                    href={`/event/${event.id}`}
-                                    className="flex items-center gap-4 p-4 bg-white rounded-xl border border-slate-200 hover:border-purple-300 hover:shadow-lg transition-all group"
-                                >
-                                    {event.imageUrl && (
-                                        <img
-                                            src={event.imageUrl}
-                                            alt={event.name}
-                                            className="w-20 h-20 rounded-lg object-cover"
-                                        />
-                                    )}
-                                    <div className="flex-grow min-w-0">
-                                        <h3 className="font-semibold text-slate-800 group-hover:text-purple-600 transition-colors truncate">
-                                            {event.name}
-                                        </h3>
-                                        <p className="text-sm text-slate-500">
-                                            📅 {formatDate(event.date)}
-                                        </p>
-                                        {event.venueName && (
-                                            <p className="text-sm text-slate-400">
-                                                📍 {event.venueName}{event.venueCity ? `, ${event.venueCity}` : ''}
-                                            </p>
-                                        )}
-                                    </div>
-                                    {event.minPrice && (
-                                        <div className="text-right">
-                                            <p className="text-xs text-slate-400">başlayan</p>
-                                            <p className="text-lg font-bold text-purple-600">
-                                                {event.minPrice.toLocaleString('tr-TR')}₺
-                                            </p>
-                                        </div>
-                                    )}
-                                </Link>
-                            ))}
-                        </div>
-                    )}
+                    <EventCalendar
+                        events={artist.upcomingEvents}
+                        getEventUrl={(event) => `/event/${event.id}`}
+                        accentColor="purple"
+                    />
                 </div>
             </section>
 
