@@ -81,7 +81,6 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
                     height: 500,
                     alt: event.name,
                 }] : [],
-                url: canonicalUrl,
                 type: 'website',
                 siteName: 'BiletLink',
             },
