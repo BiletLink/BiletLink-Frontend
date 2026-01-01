@@ -79,7 +79,7 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
                 </svg>
             ),
             url: `mailto:?subject=${encodeURIComponent(eventName)}&body=${encodeURIComponent(shareText + '\n\n' + fullUrl)}`,
-            bgColor: 'bg-gray-600 hover:bg-gray-500',
+            bgColor: 'bg-gray-500 hover:bg-gray-400',
         },
     ];
 
@@ -109,21 +109,21 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
             {/* Modal Overlay */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
                     onClick={() => setIsOpen(false)}
                 >
-                    {/* Modal Content */}
+                    {/* Modal Content - White Theme */}
                     <div
-                        className={`relative bg-[#282828] rounded-2xl shadow-2xl ${isMobile ? 'w-full mx-4 max-w-sm' : 'w-[420px]'
+                        className={`relative bg-white rounded-2xl shadow-2xl ${isMobile ? 'w-full mx-4 max-w-sm' : 'w-[420px]'
                             }`}
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-                            <h3 className="text-lg font-semibold text-white">Paylaş</h3>
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                            <h3 className="text-lg font-semibold text-gray-900">Paylaş</h3>
                             <button
                                 onClick={() => setIsOpen(false)}
-                                className="p-1 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/10"
+                                className="p-1 text-gray-500 hover:text-gray-700 transition-colors rounded-full hover:bg-gray-100"
                             >
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -143,10 +143,10 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
                                         onClick={() => setIsOpen(false)}
                                         className="flex flex-col items-center gap-2 group"
                                     >
-                                        <div className={`p-4 rounded-full ${option.bgColor} text-white transition-all transform group-hover:scale-110`}>
+                                        <div className={`p-4 rounded-full ${option.bgColor} text-white transition-all transform group-hover:scale-110 shadow-md`}>
                                             {option.icon}
                                         </div>
-                                        <span className="text-xs text-gray-400 group-hover:text-white transition-colors">
+                                        <span className="text-xs text-gray-600 group-hover:text-gray-900 transition-colors font-medium">
                                             {option.name}
                                         </span>
                                     </a>
@@ -156,12 +156,12 @@ export default function ShareButton({ eventName, eventUrl, className = '' }: Sha
 
                         {/* Copy Link Section */}
                         <div className="px-6 pb-6">
-                            <div className="flex items-center gap-2 p-3 bg-[#1a1a1a] rounded-xl border border-white/10">
+                            <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-xl border border-gray-200">
                                 <input
                                     type="text"
                                     readOnly
                                     value={fullUrl}
-                                    className="flex-1 bg-transparent text-sm text-gray-300 outline-none truncate"
+                                    className="flex-1 bg-transparent text-sm text-gray-700 outline-none truncate"
                                 />
                                 <button
                                     onClick={copyLink}
