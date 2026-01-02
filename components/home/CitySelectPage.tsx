@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useCity } from '@/contexts/CityContext';
+import { cityToSlug } from '@/utils/cityUtils';
 import PartyLights from '@/components/ui/PartyLights';
 
 // City images for landmarks
@@ -38,7 +39,8 @@ export default function CitySelectPage() {
         const city = cities.find(c => c.name === cityName);
         if (city) {
             setSelectedCity(city);
-            router.push('/etkinlikler');
+            const citySlug = cityToSlug(city.name);
+            router.push(`/${citySlug}`);
         }
     };
 

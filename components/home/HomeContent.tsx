@@ -65,28 +65,19 @@ export default function HomeContent({ initialCategory = 'Tümü', initialCitySlu
 
     const categories = ['Tümü', 'Konser', 'Tiyatro', 'Stand-Up', 'Spor', 'Festival'];
 
-    // Handle initial city from props (URL-based)
+    // Handle initial city from URL - URL always overrides localStorage
     useEffect(() => {
         if (initialCitySlug) {
             const city = slugToCity(initialCitySlug);
-            if (city && (!selectedCity || selectedCity.name !== city.name)) {
+            if (city) {
+                // Always set the city from URL, even if different from localStorage
                 setSelectedCity(city);
             }
         }
     }, [initialCitySlug, setSelectedCity]);
 
-    // Update URL when city changes
-    useEffect(() => {
-        if (selectedCity) {
-            const slug = cityToSlug(selectedCity.name);
-            const currentPath = window.location.pathname;
-            const targetPath = `/${slug}`;
-
-            if (currentPath !== targetPath && !currentPath.includes('/etkinlik/') && !currentPath.includes('/mekan/')) {
-                router.push(targetPath, { scroll: false });
-            }
-        }
-    }, [selectedCity, router]);
+    // Don't auto-update URL when city changes from Header dropdown
+    // This was causing the conflict - removed the URL update effect
 
     // Fetch events
     const fetchEvents = useCallback(async () => {
