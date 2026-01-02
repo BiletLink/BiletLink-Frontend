@@ -15,7 +15,8 @@ export default function MainSlugPage({ params }: PageProps) {
 
     if (city) {
         // Render HomeContent with initialCitySlug
-        return <HomeContent initialCitySlug={mainSlug} />;
+        // Add key to force remount when sity slug changes, preventing stale state
+        return <HomeContent initialCitySlug={mainSlug} key={mainSlug} />;
     }
 
     // If not a city, treat as category

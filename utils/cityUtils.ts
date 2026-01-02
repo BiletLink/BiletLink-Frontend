@@ -91,6 +91,8 @@ export const cities: City[] = [
 // Helper function to normalize city name to URL slug
 export function cityToSlug(cityName: string): string {
     return cityName
+        .replace(/İ/g, 'i')
+        .replace(/I/g, 'i')
         .toLowerCase()
         .replace(/ı/g, 'i')
         .replace(/ğ/g, 'g')
@@ -98,12 +100,22 @@ export function cityToSlug(cityName: string): string {
         .replace(/ş/g, 's')
         .replace(/ö/g, 'o')
         .replace(/ç/g, 'c')
-        .replace(/İ/g, 'i')
-        .replace(/\s+/g, '-');
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, ''); // Remove any other special chars
 }
 
 // Helper function to find city from slug
 export function slugToCity(slug: string): { code: string; name: string } | null {
-    const normalizedSlug = slug.toLowerCase();
-    return cities.find(city => cityToSlug(city.name) === normalizedSlug) || null;
+    try {
+        const decodedSlug = decodeURIComponent(slug).toLowerCase();
+        // Handle specialized cases like "i̇stanbul" (with combining dot)
+        const normalizedInput = decodedSlug.replace(/i̇/g, 'i').replace(/ı/g, 'i');
+
+        return cities.find(city => {
+            const citySlug = cityToSlug(city.name);
+            return citySlug === decodedSlug || citySlug === normalizedInput;
+        }) || null;
+    } catch {
+        return null;
+    }
 }
