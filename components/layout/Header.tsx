@@ -55,9 +55,8 @@ export default function Header() {
         setSelectedCity(city);
         setIsDropdownOpen(false);
         setSearchQuery('');
-        // Navigate to the selected city's page
-        const citySlug = cityToSlug(city.name);
-        router.push(`/${citySlug}`);
+        // Navigate to events page - city is stored in context/localStorage
+        router.push('/etkinlikler');
     };
 
     return (

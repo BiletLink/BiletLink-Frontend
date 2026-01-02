@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useCity } from '@/contexts/CityContext';
 import PartyLights from '@/components/ui/PartyLights';
@@ -31,9 +32,14 @@ export default function CitySelectPage() {
         ).slice(0, 8);
     }, [cities, searchQuery]);
 
+    const router = useRouter();
+
     const handleCitySelect = (cityName: string) => {
         const city = cities.find(c => c.name === cityName);
-        if (city) setSelectedCity(city);
+        if (city) {
+            setSelectedCity(city);
+            router.push('/etkinlikler');
+        }
     };
 
     const getCityImage = (cityName: string) => CITY_IMAGES[cityName]?.image || DEFAULT_CITY_IMAGE;
