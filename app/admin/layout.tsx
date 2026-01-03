@@ -36,6 +36,7 @@ const navItems = [
     {
         group: 'Araçlar',
         items: [
+            { href: '/admin/scrapers', label: 'Scrapers', icon: '🔄' },
             { href: '/admin/review', label: 'İnceleme', icon: '👀' },
             { href: '/admin/report', label: 'Rapor', icon: '📋' },
         ]
@@ -98,8 +99,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                                 <Link
                                                     href={item.href}
                                                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${isActive
-                                                            ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white border border-blue-500/30'
-                                                            : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                                                        ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-white border border-blue-500/30'
+                                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                                                         }`}
                                                     title={isCollapsed ? item.label : undefined}
                                                 >
