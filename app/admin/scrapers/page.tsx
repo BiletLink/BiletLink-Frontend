@@ -165,7 +165,7 @@ export default function ScrapersPage() {
             const statusData = await statusRes.json();
             const queueData = await queueRes.json();
             const logsData = await logsRes.json();
-            const radioData = radioRes.ok ? await radioRes.json() : null;
+            const radioData = radioRes.status === 204 ? null : (radioRes.ok ? await radioRes.json() : null);
 
             setStatus(statusData);
             setCurrentJob(queueData.currentJob);
