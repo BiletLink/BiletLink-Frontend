@@ -102,6 +102,7 @@ export default function ScrapersPage() {
     const [logs, setLogs] = useState<LogItem[]>([]);
     const [status, setStatus] = useState<ScraperStatus | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [connection, setConnection] = useState<signalR.HubConnection | null>(null);
 
     // Radio Mode state
@@ -171,6 +172,7 @@ export default function ScrapersPage() {
             setQueue(queueData.queue || []);
             setLogs(logsData);
             setRadioPlaylist(radioData);
+            setIsAuthenticated(true);
             setLoading(false);
         } catch (error) {
             console.error('Failed to fetch data:', error);
@@ -409,9 +411,10 @@ export default function ScrapersPage() {
         return `${mins}m ${secs}s`;
     };
 
-    if (loading) {
+    // Show loading until authenticated
+    if (loading || !isAuthenticated) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
+            <div className="flex items-center justify-center min-h-screen bg-gray-900">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
             </div>
         );
@@ -565,8 +568,8 @@ export default function ScrapersPage() {
                                 <span
                                     key={city}
                                     className={`px-2 py-1 text-xs rounded-full ${radioPlaylist.isActive && idx === radioPlaylist.currentCityIndex
-                                            ? 'bg-green-500/30 text-green-300 ring-1 ring-green-400'
-                                            : 'bg-white/10 text-gray-300'
+                                        ? 'bg-green-500/30 text-green-300 ring-1 ring-green-400'
+                                        : 'bg-white/10 text-gray-300'
                                         }`}
                                 >
                                     {city}
@@ -607,19 +610,19 @@ export default function ScrapersPage() {
                     <select
                         value={selectedScraper}
                         onChange={(e) => setSelectedScraper(e.target.value)}
-                        className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="bg-gray-800 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                     >
-                        <option value="Biletix">🎫 Biletix</option>
-                        <option value="Bubilet">🎟️ Bubilet</option>
+                        <option value="Biletix" className="bg-gray-800 text-white">🎫 Biletix</option>
+                        <option value="Bubilet" className="bg-gray-800 text-white">🎟️ Bubilet</option>
                     </select>
                     <select
                         value={selectedCity}
                         onChange={(e) => setSelectedCity(e.target.value)}
-                        className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[150px]"
+                        className="bg-gray-800 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 min-w-[150px]"
                     >
-                        <option value="">Şehir Seç...</option>
+                        <option value="" className="bg-gray-800 text-white">Şehir Seç...</option>
                         {ALL_CITIES.map((city) => (
-                            <option key={city} value={city}>{city}</option>
+                            <option key={city} value={city} className="bg-gray-800 text-white">{city}</option>
                         ))}
                     </select>
                     <button
@@ -659,8 +662,8 @@ export default function ScrapersPage() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className={`px-2 py-1 text-xs rounded-full ${item.addedBy === 'Radio' ? 'bg-purple-500/20 text-purple-400' :
-                                            item.addedBy === 'Admin' ? 'bg-blue-500/20 text-blue-400' :
-                                                'bg-gray-500/20 text-gray-400'
+                                        item.addedBy === 'Admin' ? 'bg-blue-500/20 text-blue-400' :
+                                            'bg-gray-500/20 text-gray-400'
                                         }`}>
                                         P:{item.priority}
                                     </span>
@@ -772,8 +775,8 @@ export default function ScrapersPage() {
                                             key={city}
                                             onClick={() => toggleCitySelection(city)}
                                             className={`px-3 py-2 text-sm rounded-lg transition-colors ${editingPlaylist.cities.includes(city)
-                                                    ? 'bg-purple-600 text-white'
-                                                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                                                ? 'bg-purple-600 text-white'
+                                                : 'bg-white/10 text-gray-300 hover:bg-white/20'
                                                 }`}
                                         >
                                             {city}
