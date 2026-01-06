@@ -390,12 +390,17 @@ export default function ScrapersPage() {
         setLogDetailLoading(false);
     };
 
-    const toggleCitySelection = (city: string) => {
+    const addCityToPlaylist = (city: string) => {
         setEditingPlaylist(prev => ({
             ...prev,
-            cities: prev.cities.includes(city)
-                ? prev.cities.filter(c => c !== city)
-                : [...prev.cities, city]
+            cities: [...prev.cities, city]
+        }));
+    };
+
+    const removeCityFromPlaylist = (index: number) => {
+        setEditingPlaylist(prev => ({
+            ...prev,
+            cities: prev.cities.filter((_, i) => i !== index)
         }));
     };
 
@@ -766,22 +771,53 @@ export default function ScrapersPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm text-gray-400 mb-2">
-                                    Şehirler ({editingPlaylist.cities.length} seçili)
-                                </label>
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[300px] overflow-y-auto p-2 bg-black/20 rounded-lg">
-                                    {ALL_CITIES.map((city) => (
-                                        <button
-                                            key={city}
-                                            onClick={() => toggleCitySelection(city)}
-                                            className={`px-3 py-2 text-sm rounded-lg transition-colors ${editingPlaylist.cities.includes(city)
-                                                ? 'bg-purple-600 text-white'
-                                                : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                                                }`}
-                                        >
-                                            {city}
-                                        </button>
-                                    ))}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[400px]">
+                                    {/* Left: Available Cities */}
+                                    <div className="flex flex-col h-full">
+                                        <label className="block text-sm text-gray-400 mb-2">Şehir Seç</label>
+                                        <div className="flex-1 overflow-y-auto p-2 bg-black/20 rounded-lg grid grid-cols-2 sm:grid-cols-2 gap-2 content-start">
+                                            {ALL_CITIES.map((city) => (
+                                                <button
+                                                    key={city}
+                                                    onClick={() => addCityToPlaylist(city)}
+                                                    className="px-2 py-1.5 text-xs bg-white/10 hover:bg-purple-600 hover:text-white rounded text-gray-300 transition-colors text-left truncate flex items-center justify-between group"
+                                                >
+                                                    <span>{city}</span>
+                                                    <span className="opacity-0 group-hover:opacity-100">+</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Right: Playlist Sequence */}
+                                    <div className="flex flex-col h-full">
+                                        <label className="block text-sm text-gray-400 mb-2">
+                                            Oynatma Sırası ({editingPlaylist.cities.length})
+                                        </label>
+                                        <div className="flex-1 overflow-y-auto p-2 bg-black/40 rounded-lg space-y-1">
+                                            {editingPlaylist.cities.length === 0 ? (
+                                                <div className="text-gray-500 text-sm text-center py-10">
+                                                    Listeye şehir ekleyin.<br />
+                                                    Aynı şehri birden fazla kez ekleyebilirsiniz.
+                                                </div>
+                                            ) : (
+                                                editingPlaylist.cities.map((city, index) => (
+                                                    <div key={index} className="flex items-center justify-between bg-white/5 px-3 py-2 rounded border border-white/5 hover:border-white/20 group">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-gray-500 text-xs font-mono w-4">{index + 1}</span>
+                                                            <span className="text-sm text-white">{city}</span>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => removeCityFromPlaylist(index)}
+                                                            className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity px-2"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
