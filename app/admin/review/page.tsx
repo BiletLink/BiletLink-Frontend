@@ -46,6 +46,9 @@ export default function ReviewPage() {
     const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
     const pageSize = 20;
 
+    const [autoApproveThreshold, setAutoApproveThreshold] = useState(66);
+    const [isAutoApproving, setIsAutoApproving] = useState(false);
+
     useEffect(() => {
         fetchReviews(page);
     }, [page]);
@@ -66,6 +69,30 @@ export default function ReviewPage() {
             console.error('Failed to fetch reviews', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleAutoApprove = async () => {
+        if (!confirm(`%${autoApproveThreshold} ve üzeri puana sahip tüm eşleşmeleri onaylamak istediğinize emin misiniz?`)) return;
+
+        setIsAutoApproving(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/reviews/auto-approve?threshold=${autoApproveThreshold}`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+            if (res.ok) {
+                const data = await res.json();
+                alert(data.message);
+                fetchReviews(1); // Refresh list
+            } else {
+                alert('İşlem başarısız oldu');
+            }
+        } catch (error) {
+            console.error('Auto approve failed', error);
+            alert('Bağlantı hatası');
+        } finally {
+            setIsAutoApproving(false);
         }
     };
 
@@ -109,11 +136,37 @@ export default function ReviewPage() {
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-2">İnceleme Bekleyenler</h1>
-            <p className="text-gray-500 mb-6">
-                {total} adet inceleme bekliyor
-                {totalPages > 1 && ` • Sayfa ${page}/${totalPages}`}
-            </p>
+            <div className="flex justify-between items-start mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold mb-2">İnceleme Bekleyenler</h1>
+                    <p className="text-gray-500">
+                        {total} adet inceleme bekliyor
+                        {totalPages > 1 && ` • Sayfa ${page}/${totalPages}`}
+                    </p>
+                </div>
+
+                {/* Auto Approve Controls */}
+                <div className="flex items-center gap-2 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                    <div className="flex flex-col">
+                        <label className="text-xs text-blue-700 font-medium mb-1">Otomatik Onay (% Min)</label>
+                        <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={autoApproveThreshold}
+                            onChange={(e) => setAutoApproveThreshold(Number(e.target.value))}
+                            className="w-20 px-2 py-1 border rounded text-sm"
+                        />
+                    </div>
+                    <button
+                        onClick={handleAutoApprove}
+                        disabled={isAutoApproving || loading}
+                        className="h-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm font-medium whitespace-nowrap"
+                    >
+                        {isAutoApproving ? 'İşleniyor...' : 'Otomatik Onayla'}
+                    </button>
+                </div>
+            </div>
 
             {loading ? (
                 <div className="flex items-center justify-center py-12">
