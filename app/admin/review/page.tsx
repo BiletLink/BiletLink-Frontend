@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface SessionReview {
     id: string;
@@ -37,6 +38,7 @@ interface ReviewItem {
 }
 
 export default function ReviewPage() {
+    const router = useRouter();
     const [items, setItems] = useState<ReviewItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [total, setTotal] = useState(0);
@@ -50,20 +52,41 @@ export default function ReviewPage() {
     const [isAutoApproving, setIsAutoApproving] = useState(false);
 
     useEffect(() => {
+        const token = localStorage.getItem('adminToken');
+        if (!token) {
+            router.push('/admin/login');
+            return;
+        }
         fetchReviews(page);
-    }, [page]);
+    }, [page, router]);
+
+    const getHeaders = () => {
+        const token = localStorage.getItem('adminToken');
+        return {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        };
+    };
 
     const fetchReviews = async (currentPage: number) => {
         setLoading(true);
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/reviews?page=${currentPage}&pageSize=${pageSize}`, {
-                credentials: 'include'
+                headers: getHeaders()
             });
+
+            if (res.status === 401) {
+                router.push('/admin/login');
+                return;
+            }
+
             if (res.ok) {
                 const data = await res.json();
                 setItems(data.items || []);
                 setTotal(data.total || 0);
                 setTotalPages(data.totalPages || 1);
+            } else {
+                console.error('Fetch error:', await res.text());
             }
         } catch (error) {
             console.error('Failed to fetch reviews', error);
@@ -79,18 +102,24 @@ export default function ReviewPage() {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/reviews/auto-approve?threshold=${autoApproveThreshold}`, {
                 method: 'POST',
-                credentials: 'include'
+                headers: getHeaders()
             });
+
+            if (res.status === 401) {
+                router.push('/admin/login');
+                return;
+            }
+
+            const data = await res.json();
             if (res.ok) {
-                const data = await res.json();
                 alert(data.message);
                 fetchReviews(1); // Refresh list
             } else {
-                alert('İşlem başarısız oldu');
+                alert(`İşlem başarısız: ${data.message || 'Bilinmeyen hata'}`);
             }
         } catch (error) {
             console.error('Auto approve failed', error);
-            alert('Bağlantı hatası');
+            alert('Bağlantı hatası: Sunucuya ulaşılamadı');
         } finally {
             setIsAutoApproving(false);
         }
@@ -101,17 +130,25 @@ export default function ReviewPage() {
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/reviews/${id}/${action}`, {
                 method: 'POST',
-                credentials: 'include'
+                headers: getHeaders()
             });
+
+            if (res.status === 401) {
+                router.push('/admin/login');
+                return;
+            }
+
+            const data = await res.json().catch(() => ({}));
+
             if (res.ok) {
                 setItems(prev => prev.filter(item => item.id !== id));
                 setTotal(prev => prev - 1);
             } else {
-                alert('İşlem başarısız oldu');
+                alert(`İşlem başarısız: ${data.message || res.statusText}`);
             }
         } catch (error) {
             console.error('Action failed', error);
-            alert('Bağlantı hatası');
+            alert('Bağlantı hatası: İşlem gerçekleştirilemedi');
         } finally {
             setActionLoading(null);
         }
