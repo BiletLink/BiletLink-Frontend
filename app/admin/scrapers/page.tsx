@@ -151,7 +151,7 @@ export default function ScrapersPage() {
                 fetch(`${API_URL}/api/admin/scraper/status`, { headers }),
                 fetch(`${API_URL}/api/admin/scraper/queue`, { headers }),
                 fetch(`${API_URL}/api/admin/scraper/logs?limit=30`, { headers }),
-                fetch(`${API_URL}/api/admin/scraper/radio/active`, { headers })
+                fetch(`${API_URL}/api/admin/scraper/radio`, { headers })
             ]);
 
             if (!statusRes.ok) {
@@ -164,7 +164,16 @@ export default function ScrapersPage() {
             const statusData = await statusRes.json();
             const queueData = await queueRes.json();
             const logsData = await logsRes.json();
-            const radioData = radioRes.status === 204 ? null : (radioRes.ok ? await radioRes.json() : null);
+
+            // Handle radio playlists
+            let radioData = null;
+            if (radioRes.ok) {
+                const playlists = await radioRes.json();
+                // Find active playlist or take the first one (most recent due to backend sorting)
+                if (Array.isArray(playlists) && playlists.length > 0) {
+                    radioData = playlists.find((p: any) => p.isActive) || playlists[0];
+                }
+            }
 
             setStatus(statusData);
             setCurrentJob(queueData.currentJob);
